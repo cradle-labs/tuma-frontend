@@ -6,21 +6,15 @@ import { WalletProvider } from "@/components/WalletProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
-import { Inter as FontSans } from "next/font/google";
 import { PropsWithChildren } from "react";
 import { AutoConnectProvider } from "@/components/AutoConnectProvider";
 import { ReactQueryClientProvider } from "@/components/ReactQueryClientProvider";
 import { TransactionSubmitterProvider } from "@/components/TransactionSubmitterProvider";
 
-const fontSans = FontSans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
 export const metadata: Metadata = {
-  title: "Aptos Wallet Adapter Example",
+  title: "Tooma",
   description:
-    "An example of how to use Aptos Wallet Adapter with React and Next.js.",
+    "Spend crypto in Africa",
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
@@ -28,8 +22,7 @@ export default function RootLayout({ children }: PropsWithChildren) {
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          "flex justify-center min-h-screen bg-background font-sans antialiased",
-          fontSans.variable,
+          "flex justify-center min-h-screen font-polysans antialiased",
         )}
       >
         <ThemeProvider

@@ -2,6 +2,200 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Font Face Declarations */
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-slim.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-slimmono.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-slimwide.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-neutral.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-neutralmono.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-neutralwide.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-median.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-medianmono.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-medianwide.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-bulky.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-bulkymono.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysanstrial-bulkywide.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Italic variants */
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-slimitalic.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-slimmonoitalic.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-slimwideitalic.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-neutralitalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-neutralmonoitalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-neutralwideitalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-medianitalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-medianmonoitalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-medianwideitalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-bulkyitalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-bulkymonoitalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Polysans';
+  src: url('/font/polysansitalictrial-bulkywideitalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -13,7 +207,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
 
-    --primary: 240 5.9% 10%;
+    --primary: 103 94% 86%;
     --primary-foreground: 0 0% 98%;
 
     --secondary: 240 4.8% 95.9%;

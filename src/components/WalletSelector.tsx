@@ -102,7 +102,7 @@ export function WalletSelector(walletSortingOptions: WalletSortingOptions) {
   ) : (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button>Connect a Wallet</Button>
+        <Button variant="primary">Connect a Wallet</Button>
       </DialogTrigger>
       <ConnectWalletDialog close={closeDialog} {...walletSortingOptions} />
     </Dialog>
@@ -224,7 +224,7 @@ function WalletRow({ wallet, onConnect }: WalletRowProps) {
         </Button>
       ) : (
         <WalletItem.ConnectButton asChild>
-          <Button size="sm">Connect</Button>
+          <Button size="sm" variant="primary">Connect</Button>
         </WalletItem.ConnectButton>
       )}
     </WalletItem>

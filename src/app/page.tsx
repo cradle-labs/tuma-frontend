@@ -17,6 +17,7 @@ import { init as initTelegram } from "@telegram-apps/sdk";
 import { MyWallet } from "@/utils/standardWallet";
 import { registerWallet } from "@aptos-labs/wallet-standard";
 import { Payment } from "@/components/payment/Payment";
+import { Spotlight } from "@/components/SpotlightNew";
 
 // Example of how to register a browser extension wallet plugin.
 // Browser extension wallets should call registerWallet once on page load.
@@ -36,45 +37,62 @@ if (isTelegramMiniApp) {
 
 export default function Home() {
   return (
-    <main className="flex flex-col h-screen w-full p-6 pb-12  gap-6">
-      <div className="flex justify-between gap-6 pb-10">
-        <div>
-          <h1 className="text-md sm:text-lg font-semibold tracking-tight">
-            Aptos Send
-          </h1>
+    // <main className="flex flex-col h-screen w-full p-6 pb-12  gap-6 absolute inset-0 z-0"
+    // style={{
+    //   background:
+    //     "radial-gradient(ellipse 60% 60% at 50% 0%, #265B6D, transparent 70%), #071b23",
+    // }}>
+    //   <div className="flex justify-between gap-6 pb-10">
+    //     <div>
+    //       <h1 className="text-md sm:text-lg font-semibold tracking-tight">
+    //         Aptos Send
+    //       </h1>
+    //     </div>
+    //     <div className="flex items-center gap-2">
+    //       <WalletSelection />
+    //     </div>
+    //   </div>
+    //   <div className="flex justify-center items-center w-full">
+    //     <div className="w-full max-w-lg">
+    //       <Payment />
+    //     </div>
+    //   </div>
+
+    // </main>
+
+    <div className="h-screen w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative overflow-hidden">
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50  backdrop-blur-sm border-b border-white/10">
+        <div className="flex justify-between items-center px-6 py-4">
+          <div>
+            <img 
+              src="/images/logo-white.png" 
+              alt="Tooma Logo" 
+              className="h-8 w-auto"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <WalletSelection />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <WalletSelection />
-        </div>
-      </div>
-      <div className="flex justify-center items-center w-full">
-        <div className="w-full max-w-lg">
+      </nav>
+
+      <Spotlight />
+      <div className="flex md:items-center md:justify-center h-full pt-6">
+        <div className="p-4 max-w-md mx-auto relative z-10 w-full">
           <Payment />
         </div>
       </div>
-
-      {/* create pay, withdraw and deposit components */}
-    </main>
+    </div>
   );
 }
 
 function WalletSelection() {
-  // const { autoConnect, setAutoConnect } = useAutoConnect();
-
   return (
-    <>
+    <div className="">
       <div className="">
-        <div className="">
-          <ShadcnWalletSelector />
-        </div>
+        <ShadcnWalletSelector />
       </div>
-    </>
+    </div>
   );
-}
-interface WalletConnectionProps {
-  account: AccountInfo | null;
-  network: NetworkInfo | null;
-  wallet: AdapterWallet | null;
-  changeNetwork: (network: Network) => Promise<AptosChangeNetworkOutput>;
 }
