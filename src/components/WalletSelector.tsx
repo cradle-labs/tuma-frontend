@@ -345,6 +345,7 @@ function WalletHoldingsSheet({ close, account }: WalletHoldingsSheetProps) {
         </div>
 
         {/* Token Holdings */}
+        {/* TODO: render popular apt tokens */}
         <div className="space-y-3">
           {holdings.map((token, index) => (
             <div key={index} className="bg-gray-800 border border-gray-700 rounded-lg p-4">
