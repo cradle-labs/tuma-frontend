@@ -37,29 +37,6 @@ if (isTelegramMiniApp) {
 
 export default function Home() {
   return (
-    // <main className="flex flex-col h-screen w-full p-6 pb-12  gap-6 absolute inset-0 z-0"
-    // style={{
-    //   background:
-    //     "radial-gradient(ellipse 60% 60% at 50% 0%, #265B6D, transparent 70%), #071b23",
-    // }}>
-    //   <div className="flex justify-between gap-6 pb-10">
-    //     <div>
-    //       <h1 className="text-md sm:text-lg font-semibold tracking-tight">
-    //         Aptos Send
-    //       </h1>
-    //     </div>
-    //     <div className="flex items-center gap-2">
-    //       <WalletSelection />
-    //     </div>
-    //   </div>
-    //   <div className="flex justify-center items-center w-full">
-    //     <div className="w-full max-w-lg">
-    //       <Payment />
-    //     </div>
-    //   </div>
-
-    // </main>
-
     <div className="h-screen w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative overflow-hidden">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50  backdrop-blur-sm border-b border-white/10">

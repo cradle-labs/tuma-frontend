@@ -42,8 +42,8 @@ export function Payment() {
   const [recipient, setRecipient] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
-  const [recipientMode, setRecipientMode] = useState<"crypto" | "cash">(
-    "crypto"
+  const [recipientMode, setRecipientMode] = useState<"offramp" | "deposit">(
+    "offramp"
   );
   const [paymentType, setPaymentType] = useState<
     "MOBILE" | "PAYBILL" | "BUY_GOODS"
@@ -104,21 +104,21 @@ export function Payment() {
         <div>
           <Tabs
             value={recipientMode}
-            onValueChange={(v) => setRecipientMode(v as "crypto" | "cash")}
+            onValueChange={(v) => setRecipientMode(v as "offramp" | "deposit")}
             className="w-full"
             defaultValue="offramp"
           >
             {/* Styled like exchange interface tabs */}
-            <TabsList  className="grid w-full grid-cols-2 bg-white/5 backdrop-blur-md rounded-xl p-1">
+            <TabsList  className="grid w-full grid-cols-2 bg-white/5 backdrop-blur-md rounded-xl p-1 ">
               <TabsTrigger 
                 value="offramp" 
-                className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl"
               >
                 Pay
               </TabsTrigger>
               <TabsTrigger 
                 value="deposit"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl"
               >
                 Deposit
               </TabsTrigger>
