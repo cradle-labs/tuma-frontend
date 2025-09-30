@@ -13,8 +13,7 @@ import { TransactionSubmitterProvider } from "@/components/TransactionSubmitterP
 
 export const metadata: Metadata = {
   title: "Tooma",
-  description:
-    "Spend crypto in Africa",
+  description: "Spend crypto in Africa",
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
@@ -22,26 +21,19 @@ export default function RootLayout({ children }: PropsWithChildren) {
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          "flex justify-center min-h-screen font-polysans antialiased",
+          "flex justify-center min-h-screen font-polysans antialiased"
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AutoConnectProvider>
-            <ReactQueryClientProvider>
-              <TransactionSubmitterProvider>
-                <WalletProvider>
-                  {children}
-                  <Toaster />
-                </WalletProvider>
-              </TransactionSubmitterProvider>
-            </ReactQueryClientProvider>
-          </AutoConnectProvider>
-        </ThemeProvider>
+        <AutoConnectProvider>
+          <ReactQueryClientProvider>
+            <TransactionSubmitterProvider>
+              <WalletProvider>
+                {children}
+                <Toaster />
+              </WalletProvider>
+            </TransactionSubmitterProvider>
+          </ReactQueryClientProvider>
+        </AutoConnectProvider>
       </body>
     </html>
   );
