@@ -117,6 +117,8 @@ export function Payment() {
                 setPhoneNumber={setDepositPhoneNumber}
                 mobileNetwork={mobileNetwork}
                 setMobileNetwork={setMobileNetwork}
+                selectedCountry={selectedCountry}
+                setSelectedCountry={handleSetSelectedCountry}
               />
             </TabsContent>
             

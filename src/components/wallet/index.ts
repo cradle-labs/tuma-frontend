@@ -4,3 +4,4 @@ export { WalletHoldingsSheet } from "./WalletHoldingsSheet";
 export { WalletRow } from "./WalletRow";
 export { AptosConnectWalletRow } from "./AptosConnectWalletRow";
 export { EducationScreen } from "./EducationScreen";
+export { EmbeddedTokenList } from "./EmbeddedTokenList";

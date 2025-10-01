@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { getUserTokens, getUserCoinBalances } from "../utils";
+import { getUserTokens, aptosClient } from "../utils";
 
 export function useUserTokens() {
   const { account, network } = useWallet();
@@ -24,7 +24,18 @@ export function useUserTokens() {
     refetch: refetchCoinBalances,
   } = useQuery({
     queryKey: ["userCoinBalances", account?.address, network?.name],
-    queryFn: () => getUserCoinBalances(account!.address.toString(), network),
+    queryFn: async () => {
+      if (!account?.address) return [];
+      const client = aptosClient(network);
+      const balances = await client.getCurrentFungibleAssetBalances({
+        options: {
+          where: {
+            owner_address: { _eq: account.address.toString() },
+          },
+        },
+      });
+      return balances;
+    },
     enabled: !!account?.address,
     staleTime: 30000, // 30 seconds
   });

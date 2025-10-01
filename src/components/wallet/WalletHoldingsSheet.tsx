@@ -1,22 +1,29 @@
 "use client";
 
 import { useWallet, truncateAddress } from "@aptos-labs/wallet-adapter-react";
-import { Copy, Eye, Power, Search, X, ArrowUpDown, ExternalLink } from "lucide-react";
+import { Eye, Power } from "lucide-react";
 import { Button } from "../ui/button";
 import { useUserTokens } from "../../hooks/useUserTokens";
+import { useUserAssets } from "../../hooks/useUserAssets";
+import { EmbeddedTokenList } from "./EmbeddedTokenList";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface WalletHoldingsSheetProps {
-  close: () => void;
+  closeAction: () => void;
   account: any;
 }
 
-export function WalletHoldingsSheet({ close, account }: WalletHoldingsSheetProps) {
+export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsSheetProps) {
+  const router = useRouter();
   const { disconnect } = useWallet();
   const { coinBalances, isLoadingCoinBalances, coinBalancesError, refetchCoinBalances } = useUserTokens();
+  const { userAssets, isLoadingAssets } = useUserAssets();
   
   const handleDisconnect = () => {
     disconnect();
-    close();
+    closeAction();
   };
 
   // Format coin balances for display
@@ -51,7 +58,7 @@ export function WalletHoldingsSheet({ close, account }: WalletHoldingsSheetProps
         return {
           symbol,
           name,
-          icon: symbol === "APT" ? "🟡" : "🔵",
+          icon: symbol === "APT" ? "aptos" : "🔵",
           balance,
           usdValue: "~$0.00", // Would need price API for real USD values
           change: "+0.00%",
@@ -63,6 +70,11 @@ export function WalletHoldingsSheet({ close, account }: WalletHoldingsSheetProps
 
   const allHoldings = formatCoinBalances();
   const totalBalance = `${allHoldings.length} tokens`;
+
+  // Calculate total USD value of all assets
+  const totalUSDValue = userAssets.reduce((total, asset) => {
+    return total + (asset.usdValue || 0);
+  }, 0);
 
   return (
     <div className="w-full h-full flex flex-col bg-[#0A0A0A]">
@@ -89,7 +101,7 @@ export function WalletHoldingsSheet({ close, account }: WalletHoldingsSheetProps
             <Power className="h-5 w-5" />
           </button>
           <button 
-            onClick={close}
+            onClick={closeAction}
             className="text-gray-400 hover:text-white transition-colors"
           >
             Esc
@@ -103,131 +115,33 @@ export function WalletHoldingsSheet({ close, account }: WalletHoldingsSheetProps
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm">Total Balance</span>
-            <button className="text-gray-400 hover:text-white transition-colors">
-              <Eye className="h-4 w-4" />
-            </button>
           </div>
-          <div className="text-3xl font-bold text-white">{totalBalance}</div>
-        </div>
-
-        {/* Balance Categories */}
-        <div className="mb-6">
-          <div className="bg-green-600/20 border border-green-600/30 rounded-lg p-3">
-            <div className="text-green-400 text-xs mb-1">Holdings ({allHoldings.length})</div>
-            <div className="text-white font-semibold">{totalBalance}</div>
-            {isLoadingCoinBalances && (
-              <div className="text-gray-400 text-xs mt-1">Loading...</div>
-            )}
-            {coinBalancesError && (
-              <div className="text-red-400 text-xs mt-1">
-                Error loading tokens
-                <button 
-                  onClick={() => refetchCoinBalances()}
-                  className="ml-2 underline hover:no-underline"
-                >
-                  Retry
-                </button>
+          <div className="text-3xl font-bold text-white">
+            {isLoadingAssets ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Loading...</span>
               </div>
+            ) : (
+              `$ ${totalUSDValue.toFixed(2)}`
             )}
           </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative mb-4">
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-            <Search className="h-4 w-4 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search by name, symbol or address"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-12 pr-10 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-gray-600"
-          />
-          <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Tokens Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-white font-medium">Tokens</span>
-            <ArrowUpDown className="h-4 w-4 text-gray-400" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">Balances (USD)</span>
-            <ArrowUpDown className="h-4 w-4 text-gray-400" />
+          <div className="text-primary text-sm mt-1">
+            {totalBalance}
           </div>
         </div>
 
-        {/* Token Holdings */}
-        <div className="space-y-3">
-          {isLoadingCoinBalances ? (
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div className="text-gray-400 text-center">Loading your tokens...</div>
-            </div>
-          ) : allHoldings.length > 0 ? (
-            allHoldings.map((token, index) => (
-              <div key={index} className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-                      <span className="text-lg">{token.icon}</span>
-                    </div>
-                    <div>
-                      <div className="text-white font-semibold">{token.symbol}</div>
-                      <div className="text-gray-400 text-sm truncate max-w-48">{token.name}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      className="text-gray-400 hover:text-white transition-colors"
-                      onClick={() => {
-                        const textToCopy = token.assetType || token.symbol;
-                        navigator.clipboard.writeText(textToCopy);
-                      }}
-                      title="Copy asset type"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </button>
-                    <button className="text-gray-400 hover:text-white transition-colors">
-                      <ExternalLink className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-white font-semibold">{token.balance}</div>
-                    <div className="text-gray-400 text-sm">{token.usdValue}</div>
-                  </div>
-                  {token.change && (
-                    <div className={`text-sm font-medium ${
-                      token.changePositive ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {token.change}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div className="text-gray-400 text-center">
-                No tokens found
-                <button 
-                  onClick={() => refetchCoinBalances()}
-                  className="ml-2 text-blue-400 hover:text-blue-300 underline"
-                >
-                  Refresh
-                </button>
-              </div>
-            </div>
-          )}
+        {/* Token List Display */}
+        <div className="flex-1">
+          <EmbeddedTokenList />
         </div>
 
-        {/* View on Explorer Button */}
-        <div className="mt-6">
+        {/* Action Buttons */}
+        <div className="mt-6 space-y-3">
           <Button variant="primary" className="w-full">
+            <Link target="_blank" href={`https://explorer.aptoslabs.com/account/${account?.address?.toString()}`}>
             View on Explorer
+            </Link>
           </Button>
         </div>
       </div>

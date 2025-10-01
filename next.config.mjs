@@ -7,6 +7,9 @@ const nextConfig = {
   transpilePackages: ["wallet-adapter-react", "wallet-adapter-plugin"],
   assetPrefix: isProd ? "/aptos-wallet-adapter" : "",
   basePath: isProd ? "/aptos-wallet-adapter" : "",
+  images: {
+    unoptimized: true,
+  },
   webpack: (config) => {
     config.resolve.fallback = { "@solana/web3.js": false };
     return config;

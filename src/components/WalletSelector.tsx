@@ -36,7 +36,7 @@ export function WalletSelector(walletSortingOptions: WalletSortingOptions) {
         <div className="fixed inset-0 z-[100] pointer-events-none">
           <div className="fixed inset-y-0 right-0 w-3/4 sm:max-w-md bg-[#0A0A0A] border-l border-gray-700 flex flex-col h-full pointer-events-auto shadow-lg animate-in slide-in-from-right duration-500">
             {connected ? (
-              <WalletHoldingsSheet close={closeSheet} account={account} />
+              <WalletHoldingsSheet closeAction={closeSheet} account={account} />
             ) : (
               <ConnectWalletSheet close={closeSheet} {...walletSortingOptions} />
             )}

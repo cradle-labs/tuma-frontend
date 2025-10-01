@@ -12,8 +12,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useOnramp } from "@/hooks/useOnramp";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
+
+// Country configuration
+const COUNTRIES = {
+  KES: { name: "Kenya", currency: "KES", symbol: "KES", flag: "🇰🇪" },
+  UGX: { name: "Uganda", currency: "UGX", symbol: "UGX", flag: "🇺🇬" },
+  GHS: { name: "Ghana", currency: "GHS", symbol: "GHS", flag: "🇬🇭" },
+  CDF: { name: "DR Congo", currency: "CDF", symbol: "CDF", flag: "🇨🇩" },
+  ETB: { name: "Ethiopia", currency: "ETB", symbol: "ETB", flag: "🇪🇹" },
+} as const;
+
+// Mobile networks by country
+const MOBILE_NETWORKS = {
+  KES: ["Safaricom", "Airtel"],
+  UGX: ["MTN", "Airtel"],
+  GHS: ["MTN", "AirtelTigo"],
+  CDF: ["Airtel Money", "Orange Money"],
+  ETB: ["Telebirr", "Cbe Birr"],
+} as const;
 
 interface DepositFormProps {
   amount: string;
@@ -22,6 +41,8 @@ interface DepositFormProps {
   setPhoneNumber: (phoneNumber: string) => void;
   mobileNetwork: string;
   setMobileNetwork: (network: string) => void;
+  selectedCountry: "KES" | "UGX" | "GHS" | "CDF" | "ETB";
+  setSelectedCountry: (country: "KES" | "UGX" | "GHS" | "CDF" | "ETB") => void;
 }
 
 export function DepositForm({
@@ -31,9 +52,27 @@ export function DepositForm({
   setPhoneNumber,
   mobileNetwork,
   setMobileNetwork,
+  selectedCountry,
+  setSelectedCountry,
 }: DepositFormProps) {
   const { connected } = useWallet();
   const { status, error, isLoading, paymentStatus, startOnramp, reset } = useOnramp();
+  
+  const currentCountry = COUNTRIES[selectedCountry];
+  const availableNetworks = MOBILE_NETWORKS[selectedCountry];
+  const { exchangeRate, isLoadingExchangeRate, isUsingFallback } = useExchangeRate(currentCountry.currency);
+
+  // APT price in USD (same as PayForm)
+  const APT_PRICE_USD = 8.5;
+
+  // Calculate APT amount from local currency
+  const calculateAPTAmount = (fiatAmount: string): number => {
+    if (!exchangeRate || !fiatAmount) return 0;
+    const fiatValue = parseFloat(fiatAmount);
+    const usdValue = fiatValue / exchangeRate; // Convert fiat to USD
+    const aptAmount = usdValue / APT_PRICE_USD; // Convert USD to APT
+    return aptAmount;
+  };
 
   const handleSubmit = async () => {
     if (!amount || !phoneNumber || !mobileNetwork) return;
@@ -112,6 +151,44 @@ export function DepositForm({
         </div>
       )}
 
+      {/* Country Selection */}
+      <div>
+        <Label htmlFor="country-select" className="text-sm text-gray-400 pb-2">
+          Select Country
+        </Label>
+        <Select
+          value={selectedCountry}
+          onValueChange={(value) =>
+            setSelectedCountry(value as typeof selectedCountry)
+          }
+        >
+          <SelectTrigger className="w-full bg-white/5 backdrop-blur-md border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">{currentCountry.flag}</span>
+              <span>
+                {currentCountry.name} ({currentCountry.currency})
+              </span>
+            </div>
+          </SelectTrigger>
+          <SelectContent
+            position="popper"
+            sideOffset={4}
+            className="z-[100003] bg-black/90 border-white/10"
+          >
+            {Object.entries(COUNTRIES).map(([code, country]) => (
+              <SelectItem key={code} value={code} className="text-white">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{country.flag}</span>
+                  <span>
+                    {country.name} ({country.currency})
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="mobile-network" className="text-sm text-gray-400">Mobile Network</Label>
         <Select value={mobileNetwork} onValueChange={setMobileNetwork} disabled={isFormDisabled}>
@@ -119,8 +196,11 @@ export function DepositForm({
             <SelectValue placeholder="Select network" />
           </SelectTrigger>
           <SelectContent className="bg-black/90 border-white/10">
-            <SelectItem value="Safaricom">Safaricom (M-Pesa)</SelectItem>
-            <SelectItem value="Airtel">Airtel Money</SelectItem>
+            {availableNetworks.map((network) => (
+              <SelectItem key={network} value={network} className="text-white">
+                {network}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -139,22 +219,96 @@ export function DepositForm({
         />
       </div>
       
-      <div className="space-y-2">
-        <Label htmlFor="onramp-amount" className="text-sm text-gray-400">Amount (KES)</Label>
-        <Input
-          id="onramp-amount"
-          type="number"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setAmount(e.target.value)
-          }
-          step="0.01"
-          min="20"
-          max="250000"
-          disabled={isFormDisabled}
-          className="bg-white/5 backdrop-blur-md border-white/20 text-white placeholder:text-gray-400 text-2xl font-semibold focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg"
-        />
+      <div className="space-y-4">
+        <Label className="text-sm text-gray-400">Enter Amount in {currentCountry.currency}</Label>
+        
+        <div className="bg-white/5 backdrop-blur-md border border-white/20 rounded-lg p-4">
+          {/* Amount Input */}
+          <div className="flex items-center justify-between pb-4">
+            <span className="text-3xl font-bold text-white">{currentCountry.currency}</span>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0"
+              min="20"
+              max="250000"
+              step="0.01"
+              disabled={isFormDisabled}
+              className="bg-primary/5 px-2 rounded-xl text-right text-4xl font-bold text-white placeholder:text-gray-500 focus:ring-0 focus:outline-none w-56 py-1 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+            />
+          </div>
+
+          {/* You'll receive section */}
+          {parseFloat(amount || "0") > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">You'll receive</span>
+                <div className="flex items-center gap-1">
+                  <img
+                    src="/images/aptos-new.png"
+                    alt="APT"
+                    className="w-4 h-4 rounded-full"
+                  />
+                  <span className="text-gray-300">APT</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-semibold text-white">
+                  {isLoadingExchangeRate ? (
+                    "Loading..."
+                  ) : exchangeRate ? (
+                    `≈ ${calculateAPTAmount(amount).toFixed(4)} APT`
+                  ) : (
+                    "Rate unavailable"
+                  )}
+                </span>
+                <div className="text-xs text-gray-500">
+                  {isLoadingExchangeRate ? (
+                    "Loading rate..."
+                  ) : exchangeRate ? (
+                    `1 USD = ${exchangeRate} ${currentCountry.currency}${isUsingFallback ? " (estimated)" : ""}`
+                  ) : (
+                    "Rate unavailable"
+                  )}
+                </div>
+              </div>
+
+              {/* Summary section */}
+              <div className="border-t border-gray-700 pt-3 space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">Total {currentCountry.currency}</span>
+                  <span className="text-white font-semibold">{amount || "0.00"} {currentCountry.currency}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">Amount in USD</span>
+                  <span className="text-white font-semibold">
+                    {isLoadingExchangeRate ? (
+                      "Loading..."
+                    ) : exchangeRate ? (
+                      `${(parseFloat(amount || "0") / exchangeRate).toFixed(2)} USD`
+                    ) : (
+                      "Rate unavailable"
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">Estimated APT</span>
+                  <span className="text-white font-semibold">
+                    {isLoadingExchangeRate ? (
+                      "Loading..."
+                    ) : exchangeRate ? (
+                      `${calculateAPTAmount(amount).toFixed(4)} APT`
+                    ) : (
+                      "Rate unavailable"
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
      
