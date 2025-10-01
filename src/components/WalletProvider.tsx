@@ -13,6 +13,7 @@ import { useAutoConnect } from "./AutoConnectProvider";
 import { useToast } from "./ui/use-toast";
 import { myTransactionSubmitter } from "@/utils/transactionSubmitter";
 import { useTransactionSubmitter } from "./TransactionSubmitterProvider";
+import { AccountCreationHandler } from "./AccountCreationHandler";
 
 const searchParams =
   typeof window !== "undefined"
@@ -72,6 +73,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         });
       }}
     >
+      <AccountCreationHandler />
       {children}
     </AptosWalletAdapterProvider>
   );

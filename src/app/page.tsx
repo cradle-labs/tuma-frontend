@@ -37,7 +37,7 @@ if (isTelegramMiniApp) {
 
 export default function Home() {
   return (
-    <div className="h-screen w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative overflow-hidden">
+    <div className="h-screen w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative overflow-auto">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50  backdrop-blur-sm border-b border-white/10">
         <div className="flex justify-between items-center px-6 py-4">
@@ -56,7 +56,7 @@ export default function Home() {
 
       <Spotlight />
       <div className="flex md:items-center md:justify-center h-full pt-6">
-        <div className="p-4 max-w-md mx-auto relative z-10 w-full">
+        <div className="px-4 pt-16 md:pt-24 max-w-md mx-auto relative z-10 w-full">
           <Payment />
         </div>
       </div>

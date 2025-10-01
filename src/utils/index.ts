@@ -128,3 +128,142 @@ export const getUserCoinBalances = async (
     throw error;
   }
 };
+
+export const createUserAccount = async (address: string) => {
+  try {
+    const response = await fetch("https://preview-api.tooma.xyz/account", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        address,
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      return { success: true, data: result };
+    } else if (response.status === 500) {
+      return { success: false, error: "Account already exists" };
+    } else {
+      throw new Error(`Account creation failed: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Error creating user account:", error);
+    throw error;
+  }
+};
+
+export const addPaymentMethod = async (params: {
+  owner: string;
+  payment_method_type: string;
+  identity: string;
+  provider_id: string;
+}) => {
+  try {
+    const response = await fetch("https://preview-api.tooma.xyz/payment-method", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Payment method creation failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Error adding payment method:", error);
+    throw error;
+  }
+};
+
+export const initiateOnramp = async (params: {
+  payment_method_id: string;
+  amount: number;
+  target_token: string;
+}) => {
+  try {
+    const response = await fetch("https://preview-api.tooma.xyz/on-ramp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Onramp initiation failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Error initiating onramp:", error);
+    throw error;
+  }
+};
+
+export const createPaymentStatusStream = (code: string) => {
+  return new EventSource(`https://preview-api.tooma.xyz/status/${code}`);
+};
+
+
+export const depositFungibleToContract = async (
+  signAndSubmitTransaction: any,
+  amount: string,
+  metadataAddress: string
+) => {
+  try {
+    if (!signAndSubmitTransaction) {
+      throw new Error("signAndSubmitTransaction is not available");
+    }
+
+    // Validate inputs
+    if (!metadataAddress) {
+      throw new Error("metadataAddress is required");
+    }
+
+    // Log the raw input first
+    console.log('Raw inputs:', {
+      metadataAddress,
+      amount,
+      metadataAddressLength: metadataAddress.length,
+      metadataAddressType: typeof metadataAddress,
+      amountType: typeof amount,
+      amountLength: amount.length
+    });
+
+    // Validate amount is a valid string number
+    if (isNaN(Number(amount))) {
+      throw new Error(`Invalid amount: ${amount}`);
+    }
+
+    // Use the standard wallet adapter format with string address
+    const transactionPayload = {
+      data: {
+        function: "0xce349ffbde2e28c21a4a7de7c4e1b3d72f1fe079494c7f8f8832bd6c8502e559::tuma::deposit_fungible",
+        typeArguments: [
+          "0x1::fungible_asset::Metadata"
+        ],
+        functionArguments: [
+          "0xa", // Simple string address instead of { inner: "0xa" }
+          amount
+        ]
+      }
+    };
+
+    console.log('Contract call payload:', transactionPayload);
+    
+    const response = await signAndSubmitTransaction(transactionPayload);
+    return response;
+  } catch (error) {
+    console.error("Error depositing to contract:", error);
+    throw error;
+  }
+};
+
