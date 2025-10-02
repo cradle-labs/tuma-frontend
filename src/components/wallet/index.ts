@@ -5,3 +5,4 @@ export { WalletRow } from "./WalletRow";
 export { AptosConnectWalletRow } from "./AptosConnectWalletRow";
 export { EducationScreen } from "./EducationScreen";
 export { EmbeddedTokenList } from "./EmbeddedTokenList";
+export { TransactionHistoryDialog } from "./TransactionHistoryDialog";

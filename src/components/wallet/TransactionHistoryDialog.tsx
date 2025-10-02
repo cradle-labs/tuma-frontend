@@ -1,0 +1,285 @@
+"use client";
+
+import { useState } from "react";
+import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { useAllTransactionHistory, TransactionData, TransactionType } from "../../hooks/useTransactionHistory";
+import { Button } from "../ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Badge } from "../ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Loader2, RefreshCw, ExternalLink, CheckCircle, XCircle, Clock } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+
+interface TransactionHistoryDialogProps {
+  children: React.ReactNode;
+}
+
+function getStatusIcon(status: string) {
+  switch (status) {
+    case "Completed":
+      return <CheckCircle className="h-8 w-8 text-green-500 bg-green-500/20 rounded-full p-2" />;
+    case "Failed":
+      return <XCircle className="h-8 w-8 text-red-500 bg-red-500/20 rounded-full p-2" />;
+    case "Pending":
+      return <Clock className="h-8 w-8 text-yellow-500 bg-yellow-500/20 rounded-full p-2" />;
+    default:
+      return <Clock className="h-8 w-8 text-gray-500 bg-gray-500/20 rounded-full p-2" />;
+  }
+}
+
+function getStatusColor(status: string) {
+  switch (status) {
+    case "Completed":
+      return "bg-green-500/10 text-green-500 border-green-500/20";
+    case "Failed":
+      return "bg-red-500/10 text-red-500 border-red-500/20";
+    case "Pending":
+      return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+    default:
+      return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+  }
+}
+
+function TransactionCard({ transaction }: { transaction: TransactionData }) {
+  return (
+    <Card className="bg-white/5 backdrop-blur-md border-none rounded-lg">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {getStatusIcon(transaction.status)}
+            <div>
+              <CardTitle className="text-lg font-bold text-white">
+                Ksh {transaction.amount} 
+              </CardTitle>
+              <p className="text-xs text-gray-400">
+                {new Date(transaction.requested_at).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </p>
+            </div>
+          </div>
+          <Badge className={`text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(transaction.status)}`}>
+            {transaction.status}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-4">
+          {/* Separator line */}
+          <div className="border-t border-gray-600"></div>
+          
+          {/* First section */}
+          <div className="grid grid-cols-3 items-center gap-4">
+            {transaction.final_token_quote && transaction.final_token_quote !== "0" && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Final Quote</p>
+                <p className="text-xs font-bold text-white">
+                  {parseFloat(transaction.final_token_quote).toFixed(6)} APT
+                </p>
+              </div>
+            )}
+            {transaction.data?.receipt && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Receipt</p>
+                <p className="text-xs font-bold text-white font-mono">
+                  {transaction.data.receipt}
+                </p>
+              </div>
+            )}
+            {transaction.on_chain_transaction_hash && (
+            <div>
+              <p className="text-xs text-gray-400">Transaction</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 text-white hover:text-gray-300"
+                onClick={() => {
+                  window.open(
+                    `https://explorer.aptoslabs.com/txn/${transaction.on_chain_transaction_hash}`,
+                    "_blank"
+                  );
+                }}
+              >
+                <span className="text-sm">View</span>
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          )}
+          </div>         
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TransactionList({ 
+  transactions, 
+  isLoading, 
+  error, 
+  onRefresh 
+}: { 
+  transactions: TransactionData[]; 
+  isLoading: boolean; 
+  error: any;
+  onRefresh: () => void;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-gray-400">Loading transactions...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-400 mb-4">Failed to load transactions</p>
+        <Button variant="outline" size="sm" onClick={onRefresh}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-400">No transactions found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {transactions.map((transaction) => (
+        <TransactionCard key={transaction.id} transaction={transaction} />
+      ))}
+    </div>
+  );
+}
+
+export function TransactionHistoryDialog({ children }: TransactionHistoryDialogProps) {
+  const { account } = useWallet();
+  const [activeTab, setActiveTab] = useState<TransactionType>("onramp");
+  
+  const {
+    onramp,
+    offramp,
+    payment,
+    isLoading,
+    isError,
+    refetch
+  } = useAllTransactionHistory(account?.address?.toString() || "", !!account);
+
+  const getCurrentTransactions = () => {
+    switch (activeTab) {
+      case "onramp":
+        return onramp.data || [];
+      case "offramp":
+        return offramp.data || [];
+      case "payment":
+        return payment.data || [];
+      default:
+        return [];
+    }
+  };
+
+  const getCurrentLoading = () => {
+    switch (activeTab) {
+      case "onramp":
+        return onramp.isLoading;
+      case "offramp":
+        return offramp.isLoading;
+      case "payment":
+        return payment.isLoading;
+      default:
+        return false;
+    }
+  };
+
+  const getCurrentError = () => {
+    switch (activeTab) {
+      case "onramp":
+        return onramp.error;
+      case "offramp":
+        return offramp.error;
+      case "payment":
+        return payment.error;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl mx-auto h-[90vh] bg-[#0A0A0A] border-gray-700 flex flex-col p-0">
+        <DialogHeader className="flex-shrink-0 p-6 pb-4">
+          <DialogTitle className="flex items-center justify-between text-white">
+            <span>Transaction History</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mr-4 flex items-center gap-2 rounded-full"
+              onClick={refetch}
+              disabled={isLoading}
+            >
+              <span className="">Refresh</span>
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex-1 flex flex-col min-h-0 px-6 pb-6">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TransactionType)} className="flex flex-col h-full">
+            <TabsList className="grid w-full grid-cols-3 rounded-xl bg-white/10 flex-shrink-0 mb-4">
+              <TabsTrigger value="onramp" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Onramp</TabsTrigger>
+              <TabsTrigger value="offramp" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Offramp</TabsTrigger>
+              <TabsTrigger value="payment" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Payment</TabsTrigger>
+            </TabsList>
+            
+            <div className="flex-1 overflow-hidden">
+              <TabsContent value="onramp" className="h-full overflow-y-auto">
+                <TransactionList
+                  transactions={getCurrentTransactions()}
+                  isLoading={getCurrentLoading()}
+                  error={getCurrentError()}
+                  onRefresh={refetch}
+                />
+              </TabsContent>
+              
+              <TabsContent value="offramp" className="h-full overflow-y-auto">
+                <TransactionList
+                  transactions={getCurrentTransactions()}
+                  isLoading={getCurrentLoading()}
+                  error={getCurrentError()}
+                  onRefresh={refetch}
+                />
+              </TabsContent>
+              
+              <TabsContent value="payment" className="h-full overflow-y-auto">
+                <TransactionList
+                  transactions={getCurrentTransactions()}
+                  isLoading={getCurrentLoading()}
+                  error={getCurrentError()}
+                  onRefresh={refetch}
+                />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

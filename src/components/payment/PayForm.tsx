@@ -22,24 +22,8 @@ import tokenList from "@/utils/token-list.json";
 import { useToast } from "@/components/ui/use-toast";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { useUserAssets } from "@/hooks/useUserAssets";
-
-// Country configuration
-const COUNTRIES = {
-  KES: { name: "Kenya", currency: "KES", symbol: "KES", flag: "🇰🇪" },
-  UGX: { name: "Uganda", currency: "UGX", symbol: "UGX", flag: "🇺🇬" },
-  GHS: { name: "Ghana", currency: "GHS", symbol: "GHS", flag: "🇬🇭" },
-  CDF: { name: "DR Congo", currency: "CDF", symbol: "CDF", flag: "🇨🇩" },
-  ETB: { name: "Ethiopia", currency: "ETB", symbol: "ETB", flag: "🇪🇹" },
-} as const;
-
-// Mobile networks by country
-const MOBILE_NETWORKS = {
-  KES: ["Safaricom", "Airtel"],
-  UGX: ["MTN", "Airtel"],
-  GHS: ["MTN", "AirtelTigo"],
-  CDF: ["Airtel Money", "Orange Money"],
-  ETB: ["Telebirr", "Cbe Birr"],
-} as const;
+import { useProviders } from "@/hooks/useProviders";
+import { XCircle } from "lucide-react";
 
 interface PayFormProps {
   phoneNumber: string;
@@ -90,13 +74,16 @@ const PayFormComponent = ({
   validationResult,
   amount: externalAmount,
 }: PayFormProps) => {
+  const { providers, isLoading: isLoadingProviders, isError: isProvidersError, error: providersError, getProvidersByCountry, getCountries, refetch: refetchProviders } = useProviders();
+  
+  const countries = getCountries();
   const currentCountry = useMemo(
-    () => COUNTRIES[selectedCountry],
-    [selectedCountry]
+    () => countries.find(c => c.code === selectedCountry),
+    [countries, selectedCountry]
   );
-  const availableNetworks = useMemo(
-    () => MOBILE_NETWORKS[selectedCountry],
-    [selectedCountry]
+  const availableProviders = useMemo(
+    () => getProvidersByCountry(selectedCountry),
+    [getProvidersByCountry, selectedCountry]
   );
 
   const { account, signAndSubmitTransaction, network } = useWallet();
@@ -110,8 +97,8 @@ const PayFormComponent = ({
 
   // Memoize the currency to prevent unnecessary re-renders
   const currency = useMemo(
-    () => currentCountry.currency,
-    [currentCountry.currency]
+    () => currentCountry?.currency || selectedCountry,
+    [currentCountry?.currency, selectedCountry]
   );
 
   // Use the exchange rate hook with memoized currency
@@ -390,37 +377,66 @@ const PayFormComponent = ({
         <Label htmlFor="country-select" className="text-sm text-gray-400 pb-2">
           Select Country
         </Label>
-        <Select
-          value={selectedCountry}
-          onValueChange={(value) =>
-            setSelectedCountry(value as typeof selectedCountry)
-          }
-        >
-          <SelectTrigger className="w-full bg-white/5 backdrop-blur-md border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{currentCountry.flag}</span>
-              <span>
-                {currentCountry.name} ({currentCountry.currency})
-              </span>
+        {isLoadingProviders ? (
+          <div className="p-3 bg-white/5 border border-white/20 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-gray-400">Loading countries...</span>
             </div>
-          </SelectTrigger>
-          <SelectContent
-            position="popper"
-            sideOffset={4}
-            className="z-[100003] bg-black/90 border-white/10"
+          </div>
+        ) : isProvidersError ? (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-red-400" />
+                <span className="text-sm text-red-400">Failed to load countries</span>
+              </div>
+              <Button
+                onClick={() => refetchProviders()}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Retry
+              </Button>
+            </div>
+            <div className="text-xs text-red-300 mt-1">
+              {providersError?.message || 'Unknown error'}
+            </div>
+          </div>
+        ) : (
+          <Select
+            value={selectedCountry}
+            onValueChange={(value) =>
+              setSelectedCountry(value as typeof selectedCountry)
+            }
           >
-            {Object.entries(COUNTRIES).map(([code, country]) => (
-              <SelectItem key={code} value={code} className="text-white">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{country.flag}</span>
-                  <span>
-                    {country.name} ({country.currency})
-                  </span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <SelectTrigger className="w-full bg-white/5 backdrop-blur-md border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{currentCountry?.flag}</span>
+                <span>
+                  {currentCountry?.name} ({currentCountry?.currency})
+                </span>
+              </div>
+            </SelectTrigger>
+            <SelectContent
+              position="popper"
+              sideOffset={4}
+              className="z-[100003] bg-black/90 border-white/10"
+            >
+              {countries.map((country) => (
+                <SelectItem key={country.code} value={country.code} className="text-white">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{country.flag}</span>
+                    <span>
+                      {country.name} ({country.currency})
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Payment Type Tabs - Only for Kenya */}
@@ -458,7 +474,37 @@ const PayFormComponent = ({
       )}
 
       {/* Mobile Network */}
-      {availableNetworks.length > 0 && (
+      {isLoadingProviders ? (
+        <div className="space-y-2">
+          <Label className="text-sm text-gray-400">Mobile Network</Label>
+          <div className="p-3 bg-white/5 border border-white/20 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-gray-400">Loading networks...</span>
+            </div>
+          </div>
+        </div>
+      ) : isProvidersError ? (
+        <div className="space-y-2">
+          <Label className="text-sm text-gray-400">Mobile Network</Label>
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-red-400" />
+                <span className="text-sm text-red-400">Failed to load networks</span>
+              </div>
+              <Button
+                onClick={() => refetchProviders()}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : availableProviders.length > 0 ? (
         <div className="space-y-2">
           <Label className="text-sm text-gray-400">Mobile Network</Label>
           <Select value={mobileNetwork} onValueChange={setMobileNetwork}>
@@ -470,17 +516,24 @@ const PayFormComponent = ({
               sideOffset={4}
               className="z-[100003] bg-black/90 border-white/10"
             >
-              {availableNetworks.map((network) => (
+              {availableProviders.map((provider) => (
                 <SelectItem
-                  key={network}
-                  value={network}
+                  key={provider.id}
+                  value={provider.name}
                   className="text-white"
                 >
-                  {network}
+                  {provider.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label className="text-sm text-gray-400">Mobile Network</Label>
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <span className="text-sm text-red-400">No networks available for this country</span>
+          </div>
         </div>
       )}
 
@@ -550,14 +603,14 @@ const PayFormComponent = ({
       {/* Amount Input Section */}
       <div className="space-y-4">
         <Label className="text-sm text-gray-400">
-          Enter Amount in {currentCountry.currency}
+          Enter Amount in {currentCountry?.currency || selectedCountry}
         </Label>
 
         <div className="bg-white/5 backdrop-blur-md border border-white/20 rounded-lg p-4">
           {/* Amount Input */}
           <div className="flex items-center justify-between pb-4 ">
             <span className="text-3xl font-bold text-white">
-              {currentCountry.currency}
+              {currentCountry?.currency || selectedCountry}
             </span>
             <input
               type="number"
@@ -615,7 +668,7 @@ const PayFormComponent = ({
 
               <div className="flex items-center justify-between gap-2">
                 <div className="text-xs text-gray-500">
-                  1 USDC = {exchangeRate} {currentCountry.currency}
+                  1 USDC = {exchangeRate} {currentCountry?.currency || selectedCountry}
                   {isUsingFallback && (
                     <span className="text-yellow-400 ml-1">(estimated)</span>
                   )}
@@ -634,10 +687,10 @@ const PayFormComponent = ({
               <div className="border-t border-gray-700 pt-3 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">
-                    Total {currentCountry.currency}
+                    Total {currentCountry?.currency || selectedCountry}
                   </span>
                   <span className="text-white font-semibold">
-                    {amount || "0.00"} {currentCountry.currency}
+                    {amount || "0.00"} {currentCountry?.currency || selectedCountry}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
