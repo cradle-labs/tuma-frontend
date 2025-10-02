@@ -181,16 +181,25 @@ export function TransactionHistoryDialog({ children }: TransactionHistoryDialogP
   } = useAllTransactionHistory(account?.address?.toString() || "", !!account);
 
   const getCurrentTransactions = () => {
+    let transactions: TransactionData[] = [];
     switch (activeTab) {
       case "onramp":
-        return onramp.data || [];
+        transactions = onramp.data || [];
+        break;
       case "offramp":
-        return offramp.data || [];
+        transactions = offramp.data || [];
+        break;
       case "payment":
-        return payment.data || [];
+        transactions = payment.data || [];
+        break;
       default:
-        return [];
+        transactions = [];
     }
+    
+    // Sort transactions by requested_at in descending order (latest first)
+    return transactions.sort((a, b) => 
+      new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime()
+    );
   };
 
   const getCurrentLoading = () => {

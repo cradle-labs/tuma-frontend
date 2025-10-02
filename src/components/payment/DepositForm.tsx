@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useOnramp } from "@/hooks/useOnramp";
-import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { useProviders } from "@/hooks/useProviders";
+import { useConversion } from "@/hooks/useConversion";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 
@@ -45,19 +45,36 @@ export function DepositForm({
   const countries = getCountries();
   const currentCountry = countries.find(c => c.code === selectedCountry);
   const availableProviders = getProvidersByCountry(selectedCountry);
-  const { exchangeRate, isLoadingExchangeRate, isUsingFallback } = useExchangeRate(currentCountry?.currency || selectedCountry);
+  
+  // Use conversion API instead of manual calculation
+  const conversionParams = useMemo(() => {
+    const parsedAmount = parseFloat(amount);
+    console.log('Amount entered:', amount, 'Parsed amount:', parsedAmount);
+    
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      console.log('Conversion params set to null - invalid amount');
+      return null;
+    }
+    
+    const params = {
+      from: (currentCountry?.currency || selectedCountry).toLowerCase(),
+      to: 'apt',
+      amount: parsedAmount
+    };
+    
+    console.log('Conversion params created:', params);
+    return params;
+  }, [amount, currentCountry?.currency, selectedCountry]);
+  
+  
+  const { data: conversionData, isLoading: isLoadingConversion, error: conversionError } = useConversion(conversionParams);
 
-  // APT price in USD (same as PayForm)
-  const APT_PRICE_USD = 8.5;
-
-  // Calculate APT amount from local currency
-  const calculateAPTAmount = (fiatAmount: string): number => {
-    if (!exchangeRate || !fiatAmount) return 0;
-    const fiatValue = parseFloat(fiatAmount);
-    const usdValue = fiatValue / exchangeRate; // Convert fiat to USD
-    const aptAmount = usdValue / APT_PRICE_USD; // Convert USD to APT
-    return aptAmount;
-  };
+  // Helper function to get USD amount from conversion data
+  const getUSDAmount = useCallback((): number => {
+    if (!conversionData || !amount) return 0;
+    const fiatValue = parseFloat(amount);
+    return fiatValue / conversionData.from_usd_quote;
+  }, [conversionData, amount]);
 
   const handleSubmit = async () => {
     if (!amount || !phoneNumber || !mobileNetwork) return;
@@ -69,7 +86,7 @@ export function DepositForm({
     });
   };
 
-  const getStatusMessage = () => {
+  const getStatusMessage = useCallback(() => {
     switch (status) {
       case "adding_payment_method":
         return "Adding payment method...";
@@ -84,9 +101,9 @@ export function DepositForm({
       default:
         return null;
     }
-  };
+  }, [status, error]);
 
-  const getStatusIcon = () => {
+  const getStatusIcon = useCallback(() => {
     switch (status) {
       case "adding_payment_method":
       case "initiating_onramp":
@@ -99,10 +116,10 @@ export function DepositForm({
       default:
         return null;
     }
-  };
+  }, [status]);
 
-  const isFormDisabled = !connected || isLoading || status === "success";
-  const isButtonDisabled = isFormDisabled || !amount || !phoneNumber || !mobileNetwork;
+  const isFormDisabled = useMemo(() => !connected || isLoading || status === "success", [connected, isLoading, status]);
+  const isButtonDisabled = useMemo(() => isFormDisabled || !amount || !phoneNumber || !mobileNetwork, [isFormDisabled, amount, phoneNumber, mobileNetwork]);
 
   return (
     <div className="space-y-4 mt-6">
@@ -300,21 +317,25 @@ export function DepositForm({
 
               <div className="flex items-center justify-between">
                 <span className="text-lg font-semibold text-white">
-                  {isLoadingExchangeRate ? (
+                  {isLoadingConversion ? (
                     "Loading..."
-                  ) : exchangeRate ? (
-                    `≈ ${calculateAPTAmount(amount).toFixed(4)} APT`
-                  ) : (
+                  ) : conversionData ? (
+                    `≈ ${conversionData.converted.toFixed(4)} APT`
+                  ) : conversionError ? (
                     "Rate unavailable"
+                  ) : (
+                    "Enter amount"
                   )}
                 </span>
                 <div className="text-xs text-gray-500">
-                  {isLoadingExchangeRate ? (
+                  {isLoadingConversion ? (
                     "Loading rate..."
-                  ) : exchangeRate ? (
-                    `1 USD = ${exchangeRate} ${currentCountry?.currency || selectedCountry}${isUsingFallback ? " (estimated)" : ""}`
-                  ) : (
+                  ) : conversionData ? (
+                    `1 ${(currentCountry?.currency || selectedCountry).toUpperCase()} = ${conversionData.from_usd_quote} USD`
+                  ) : conversionError ? (
                     "Rate unavailable"
+                  ) : (
+                    "Enter amount"
                   )}
                 </div>
               </div>
@@ -328,10 +349,10 @@ export function DepositForm({
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-400">Amount in USD</span>
                   <span className="text-white font-semibold">
-                    {isLoadingExchangeRate ? (
+                    {isLoadingConversion ? (
                       "Loading..."
-                    ) : exchangeRate ? (
-                      `${(parseFloat(amount || "0") / exchangeRate).toFixed(2)} USD`
+                    ) : conversionData ? (
+                      `${getUSDAmount().toFixed(2)} USD`
                     ) : (
                       "Rate unavailable"
                     )}
@@ -340,10 +361,10 @@ export function DepositForm({
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-400">Estimated APT</span>
                   <span className="text-white font-semibold">
-                    {isLoadingExchangeRate ? (
+                    {isLoadingConversion ? (
                       "Loading..."
-                    ) : exchangeRate ? (
-                      `${calculateAPTAmount(amount).toFixed(4)} APT`
+                    ) : conversionData ? (
+                      `${conversionData.converted.toFixed(4)} APT`
                     ) : (
                       "Rate unavailable"
                     )}

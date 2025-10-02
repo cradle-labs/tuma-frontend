@@ -96,6 +96,12 @@ export const addPaymentMethod = async (params: {
   provider_id: string;
 }) => {
   try {
+    console.log("📤 addPaymentMethod request:", {
+      url: "https://preview-api.tooma.xyz/payment-method",
+      method: "POST",
+      params
+    });
+
     const response = await fetch("https://preview-api.tooma.xyz/payment-method", {
       method: "POST",
       headers: {
@@ -104,14 +110,19 @@ export const addPaymentMethod = async (params: {
       body: JSON.stringify(params),
     });
 
+    console.log("📥 addPaymentMethod response status:", response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`Payment method creation failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error("❌ addPaymentMethod error response:", errorText);
+      throw new Error(`Payment method creation failed: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
+    console.log("✅ addPaymentMethod success response:", result);
     return result;
   } catch (error) {
-    console.error("Error adding payment method:", error);
+    console.error("❌ Error adding payment method:", error);
     throw error;
   }
 };
@@ -122,6 +133,12 @@ export const initiateOnramp = async (params: {
   target_token: string;
 }) => {
   try {
+    console.log("📤 initiateOnramp request:", {
+      url: "https://preview-api.tooma.xyz/on-ramp",
+      method: "POST",
+      params
+    });
+
     const response = await fetch("https://preview-api.tooma.xyz/on-ramp", {
       method: "POST",
       headers: {
@@ -130,20 +147,79 @@ export const initiateOnramp = async (params: {
       body: JSON.stringify(params),
     });
 
+    console.log("📥 initiateOnramp response status:", response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`Onramp initiation failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error("❌ initiateOnramp error response:", errorText);
+      throw new Error(`Onramp initiation failed: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
+    console.log("✅ initiateOnramp success response:", result);
     return result;
   } catch (error) {
-    console.error("Error initiating onramp:", error);
+    console.error("❌ Error initiating onramp:", error);
     throw error;
   }
 };
 
+// Helper function to test if SSE endpoint exists
+export const testPaymentStatusEndpoint = async (code: string) => {
+  const url = `https://preview-api.tooma.xyz/status/${code}`;
+  console.log("🧪 Testing SSE endpoint:", url);
+  
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD', // Just check if endpoint exists
+      headers: {
+        'Accept': 'text/event-stream'
+      }
+    });
+    
+    console.log("📥 SSE endpoint test response:", {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+    
+    return {
+      exists: response.ok,
+      status: response.status,
+      statusText: response.statusText
+    };
+  } catch (error) {
+    console.error("❌ SSE endpoint test failed:", error);
+    return {
+      exists: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+};
+
 export const createPaymentStatusStream = (code: string) => {
-  return new EventSource(`https://preview-api.tooma.xyz/status/${code}`);
+  const url = `https://preview-api.tooma.xyz/status/${code}`;
+  console.log("🔄 Creating EventSource for payment status:", {
+    code,
+    url
+  });
+  
+  const eventSource = new EventSource(url);
+  
+  // Add event listeners for debugging
+  eventSource.onopen = (event) => {
+    console.log("✅ EventSource connection opened:", event);
+  };
+  
+  eventSource.onerror = (event) => {
+    console.error("❌ EventSource error:", {
+      event,
+      readyState: eventSource.readyState,
+      url
+    });
+  };
+  
+  return eventSource;
 };
 
 
