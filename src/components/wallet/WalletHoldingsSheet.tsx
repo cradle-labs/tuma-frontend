@@ -1,14 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useWallet, truncateAddress } from "@aptos-labs/wallet-adapter-react";
 import { Eye, Power } from "lucide-react";
 import { Button } from "../ui/button";
 import { useUserTokens } from "../../hooks/useUserTokens";
 import { useUserAssets } from "../../hooks/useUserAssets";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
 import { EmbeddedTokenList } from "./EmbeddedTokenList";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 interface WalletHoldingsSheetProps {
   closeAction: () => void;
@@ -20,6 +23,8 @@ export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsShee
   const { disconnect } = useWallet();
   const { coinBalances, isLoadingCoinBalances, coinBalancesError, refetchCoinBalances } = useUserTokens();
   const { userAssets, isLoadingAssets } = useUserAssets();
+  const { exchangeRate, isLoadingExchangeRate } = useExchangeRate("KES");
+  const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "KES">("KES");
   
   const handleDisconnect = () => {
     disconnect();
@@ -76,6 +81,26 @@ export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsShee
     return total + (asset.usdValue || 0);
   }, 0);
 
+  // Calculate total value in selected currency
+  const getTotalValue = () => {
+    if (selectedCurrency === "KES" && exchangeRate) {
+      return totalUSDValue * exchangeRate;
+    }
+    return totalUSDValue;
+  };
+
+  const getCurrencySymbol = () => {
+    return selectedCurrency === "KES" ? "KSh" : "$";
+  };
+
+  const getFormattedValue = () => {
+    const value = getTotalValue();
+    if (selectedCurrency === "KES") {
+      return `KSh ${value.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `$ ${value.toFixed(2)}`;
+  };
+
   return (
     <div className="w-full h-full flex flex-col bg-[#0A0A0A]">
       {/* Header */}
@@ -115,15 +140,24 @@ export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsShee
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm">Total Balance</span>
+            <Select value={selectedCurrency} onValueChange={(value) => setSelectedCurrency(value as "USD" | "KES")}>
+              <SelectTrigger className="w-20 h-8 bg-white/5 backdrop-blur-md border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-[100003] bg-black/90 border-white/10">
+                <SelectItem value="USD" className="text-white">USD</SelectItem>
+                <SelectItem value="KES" className="text-white">KES</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="text-3xl font-bold text-white">
-            {isLoadingAssets ? (
+            {isLoadingAssets || (selectedCurrency === "KES" && isLoadingExchangeRate) ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 <span>Loading...</span>
               </div>
             ) : (
-              `$ ${totalUSDValue.toFixed(2)}`
+              getFormattedValue()
             )}
           </div>
           <div className="text-primary text-sm mt-1">
@@ -133,7 +167,7 @@ export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsShee
 
         {/* Token List Display */}
         <div className="flex-1">
-          <EmbeddedTokenList />
+          <EmbeddedTokenList selectedCurrency={selectedCurrency} />
         </div>
 
         {/* Action Buttons */}

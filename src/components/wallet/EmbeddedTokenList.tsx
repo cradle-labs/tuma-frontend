@@ -5,6 +5,7 @@ import { Copy, ExternalLink, Search, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useUserTokens } from "../../hooks/useUserTokens";
 import { useTokenPrices } from "../../hooks/useTokenPrices";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import Image from "next/image";
 import tokenList from "../../utils/token-list.json";
@@ -27,9 +28,14 @@ interface Token {
   coinMarketCapId: number | null;
 }
 
-export function EmbeddedTokenList() {
+interface EmbeddedTokenListProps {
+  selectedCurrency?: "USD" | "KES";
+}
+
+export function EmbeddedTokenList({ selectedCurrency = "KES" }: EmbeddedTokenListProps) {
   const { network } = useWallet();
   const { coinBalances, isLoadingCoinBalances } = useUserTokens();
+  const { exchangeRate } = useExchangeRate("KES");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("All");
 
@@ -170,6 +176,15 @@ export function EmbeddedTokenList() {
     const usdValue = tokenBalance * usdPrice;
     
     return usdValue;
+  };
+
+  // Helper function to format value in selected currency
+  const formatValue = (usdValue: number) => {
+    if (selectedCurrency === "KES" && exchangeRate) {
+      const kesValue = usdValue * exchangeRate;
+      return `KSh ${kesValue.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `$${usdValue.toFixed(2)}`;
   };
 
   // Filter tokens based on search and tab, with owned tokens at the top
@@ -360,7 +375,7 @@ export function EmbeddedTokenList() {
                                 const usdValue = getUSDValue(token.faAddress, userBalance);
                                 return usdValue ? (
                                   <div className="text-green-400 text-sm">
-                                    ${usdValue.toFixed(2)}
+                                    {formatValue(usdValue)}
                                   </div>
                                 ) : isLoadingPrices ? (
                                   <div className="text-gray-400 text-sm">
@@ -379,7 +394,7 @@ export function EmbeddedTokenList() {
                                 0.00 
                               </div>
                               <div className="text-gray-500 text-xs">
-                                $0.00
+                                {selectedCurrency === "KES" ? "KSh 0.00" : "$0.00"}
                               </div>
                             </>
                           )}
