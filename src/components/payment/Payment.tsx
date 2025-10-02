@@ -105,7 +105,7 @@ export function Payment() {
                 value="deposit"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl"
               >
-                Deposit
+                Fund Wallet
               </TabsTrigger>
             </TabsList>
             

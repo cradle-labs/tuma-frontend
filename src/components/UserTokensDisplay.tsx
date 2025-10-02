@@ -38,7 +38,7 @@ export function UserTokensDisplay() {
           <ul className="space-y-2">
             {coinBalances.map((coin, index) => (
               <li key={index} className="p-2 border rounded">
-                <div>Type: {coin.coin_type}</div>
+                <div>Type: {coin.asset_type}</div>
                 <div>Amount: {coin.amount}</div>
               </li>
             ))}
@@ -55,7 +55,7 @@ export function UserTokensDisplay() {
             {tokens.map((token, index) => (
               <li key={index} className="p-2 border rounded">
                 <div>Token: {token.current_token_data?.token_name || 'Unknown'}</div>
-                <div>Collection: {token.current_token_data?.collection_name || 'Unknown'}</div>
+                <div>Collection: {token.token_data_id || 'Unknown'}</div>
                 <div>Amount: {token.amount}</div>
               </li>
             ))}

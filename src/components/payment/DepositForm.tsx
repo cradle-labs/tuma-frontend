@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,8 @@ import { useOnramp } from "@/hooks/useOnramp";
 import { useProviders } from "@/hooks/useProviders";
 import { useConversion } from "@/hooks/useConversion";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, CreditCard } from "lucide-react";
+import { PaymentMethodDialog } from "./PaymentMethodDialog";
 
 interface DepositFormProps {
   amount: string;
@@ -41,6 +42,9 @@ export function DepositForm({
   const { connected } = useWallet();
   const { status, error, isLoading, paymentStatus, startOnramp, reset } = useOnramp();
   const { providers, isLoading: isLoadingProviders, isError: isProvidersError, error: providersError, getProvidersByCountry, getCountries, refetch: refetchProviders } = useProviders();
+  
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
   
   const countries = getCountries();
   const currentCountry = countries.find(c => c.code === selectedCountry);
@@ -76,6 +80,16 @@ export function DepositForm({
     return fiatValue / conversionData.from_usd_quote;
   }, [conversionData, amount]);
 
+  const handlePaymentMethodSelect = useCallback((phoneNumber: string, paymentMethodId?: string) => {
+    setPhoneNumber(phoneNumber);
+    setSelectedPaymentMethodId(paymentMethodId || null);
+  }, [setPhoneNumber]);
+
+  const handleCreateNewPaymentMethod = useCallback(() => {
+    setSelectedPaymentMethodId(null);
+    setPhoneNumber("");
+  }, [setPhoneNumber]);
+
   const handleSubmit = async () => {
     if (!amount || !phoneNumber || !mobileNetwork) return;
     
@@ -83,6 +97,7 @@ export function DepositForm({
       phoneNumber,
       mobileNetwork,
       amount: parseFloat(amount),
+      existingPaymentMethodId: selectedPaymentMethodId,
     });
   };
 
@@ -137,7 +152,7 @@ export function DepositForm({
           </div>
           {paymentStatus && (
             <div className="mt-2 text-xs text-gray-400">
-              Status: {paymentStatus.status}
+              Status: {(paymentStatus as any)?.status || 'Unknown'}
             </div>
           )}
           {(status === "error" || status === "success") && (
@@ -267,17 +282,32 @@ export function DepositForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="phone-number" className="text-sm text-gray-400">M-Pesa Phone Number</Label>
-        <Input
-          id="phone-number"
-          type="tel"
-          placeholder="0799770833"
-          value={phoneNumber}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setPhoneNumber(e.target.value)
-          }
-          disabled={isFormDisabled}
-          className="bg-white/5 backdrop-blur-md border-white/20 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg"
-        />
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsDialogOpen(true)}
+            disabled={isFormDisabled}
+            className="bg-white/5 backdrop-blur-md border-white/20 text-white hover:bg-white/10 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 shadow-lg flex-shrink-0"
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            Select
+          </Button>
+          <Input
+            id="phone-number"
+            type="tel"
+            placeholder="0799770833"
+            value={phoneNumber}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setPhoneNumber(e.target.value)
+            }
+            disabled={isFormDisabled}
+            className="bg-white/5 backdrop-blur-md border-white/20 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg flex-1"
+          />
+        </div>
+        {selectedPaymentMethodId && (
+          <p className="text-xs text-green-400">✓ Ok</p>
+        )}
       </div>
       
       <div className="space-y-4">
@@ -397,6 +427,13 @@ export function DepositForm({
       <p className="text-xs text-gray-400 text-center">
         Minimum: 20 KES • Maximum: 250,000 KES
       </p>
+
+      <PaymentMethodDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSelect={handlePaymentMethodSelect}
+        onCreateNew={handleCreateNewPaymentMethod}
+      />
     </div>
   );
 }

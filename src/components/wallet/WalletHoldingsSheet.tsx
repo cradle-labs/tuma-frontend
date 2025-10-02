@@ -89,10 +89,6 @@ export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsShee
     return totalUSDValue;
   };
 
-  const getCurrencySymbol = () => {
-    return selectedCurrency === "KES" ? "KSh" : "$";
-  };
-
   const getFormattedValue = () => {
     const value = getTotalValue();
     if (selectedCurrency === "KES") {
@@ -102,7 +98,7 @@ export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsShee
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#0A0A0A]">
+    <div className="w-full h-full flex flex-col backdrop-blur-md">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
