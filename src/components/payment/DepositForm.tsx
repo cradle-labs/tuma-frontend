@@ -601,7 +601,7 @@ export function DepositForm({
           {parseFloat(amount || "0") > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">You'll receive</span>
+                <span className="text-sm text-gray-400">You&apos;ll receive</span>
                 <div className="flex items-center gap-1">
                   {selectedCryptoCurrency ? (
                     <>

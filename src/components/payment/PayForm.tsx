@@ -931,7 +931,7 @@ const PayFormComponent = ({
           {parseFloat(amount || "0") > 0 && selectedCryptoCurrency && (exchangeRate || conversionData) && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">You'll pay</span>
+                <span className="text-gray-400">You&apos;ll pay</span>
                 <div className="flex items-center gap-2">
                   {isLoadingConversion ? (
                     <div className="flex items-center gap-2">
