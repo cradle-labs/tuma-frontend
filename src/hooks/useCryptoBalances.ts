@@ -44,6 +44,8 @@ export const useCryptoBalances = (): UseCryptoBalancesReturn => {
     refetch: refetchCurrencies
   } = useSupportedCurrencies();
 
+  console.log('cryptoCurrencies', cryptoCurrencies);
+
   // Fetch all fungible asset balances (including APT) using the same method as useUserTokens
   const {
     data: allFungibleAssetBalances,
@@ -105,6 +107,12 @@ export const useCryptoBalances = (): UseCryptoBalancesReturn => {
         // Special case for APT: check for aptos_coin pattern
         if (currency.symbol === "APT" && asset.asset_type.includes("::aptos_coin::AptosCoin")) {
           console.log(`✅ APT pattern match found for ${currency.symbol}`);
+          return true;
+        }
+
+        // Special case for Gui Inu: use the specific address provided
+        if (currency.name === "Gui Inu" && asset.asset_type === "0xe4ccb6d39136469f376242c31b34d10515c8eaaa38092f804db8e08a8f53c5b2::assets_v1::EchoCoin002") {
+          console.log(`✅ Gui Inu special address match found for ${currency.symbol}`);
           return true;
         }
 

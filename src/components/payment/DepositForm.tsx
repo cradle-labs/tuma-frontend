@@ -70,13 +70,16 @@ export function DepositForm({
     getBalanceById,
     hasSufficientBalance: checkSufficientBalance,
   } = useCryptoBalances();
+  console.log('cryptoBalances', cryptoBalances);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
     string | null
   >(null);
+
   const [selectedCryptoCurrency, setSelectedCryptoCurrency] =
     useState<SupportedCurrency | null>(null);
+    console.log('selectedCryptoCurrency', selectedCryptoCurrency);
 
   const countries = getCountries();
   const currentCountry = countries.find((c) => c.code === selectedCountry);
