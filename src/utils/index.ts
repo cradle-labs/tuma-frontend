@@ -1,4 +1,4 @@
-import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
+import { Aptos, AptosConfig, Network, MultiAgentTransaction, AccountAuthenticator, Deserializer } from "@aptos-labs/ts-sdk";
 import { NetworkInfo } from "@aptos-labs/wallet-adapter-core";
 
 // Devnet client
@@ -362,6 +362,120 @@ export const createPaymentStatusStream = (code: string) => {
 };
 
 
+// Import server action for gas sponsorship
+import { getPaymentTransactionSerialized } from "@/app/actions/payment";
+
+
+// Gas-sponsored transaction function (similar to your useClaimTree example)
+export const depositFungibleToContractSponsored = async (
+  signTransaction: any,
+  submitTransaction: any,
+  userAddress: string,
+  amount: string,
+  metadataAddress: string,
+  paymentSession: any
+) => {
+  try {
+    if (!signTransaction || !submitTransaction) {
+      throw new Error("signTransaction or submitTransaction is not available");
+    }
+
+    // Validate inputs
+    if (!metadataAddress) {
+      throw new Error("metadataAddress is required");
+    }
+
+    if (!userAddress) {
+      throw new Error("userAddress is required");
+    }
+
+    // Validate amount is a valid string number
+    if (isNaN(Number(amount))) {
+      throw new Error(`Invalid amount: ${amount}`);
+    }
+
+    const paymentSessionId = paymentSession?.session_id || paymentSession?.id || "default_session_id";
+
+    console.log('Gas-sponsored transaction inputs:', {
+      userAddress,
+      metadataAddress,
+      amount,
+      paymentSessionId
+    });
+
+    // Get serialized transaction data from server action
+    const transactionData = await getPaymentTransactionSerialized({
+      address: userAddress,
+      metadataAddress,
+      amount,
+      paymentSessionId
+    });
+
+    console.log("Serialized transaction data:", transactionData);
+
+    const authenticator_str = Buffer.from(transactionData.authenticator, 'base64');
+    const transaction_str = Buffer.from(transactionData.transaction, 'base64');
+
+    const transaction_deserializer = new Deserializer(transaction_str);
+    const authenticator_deserializer = new Deserializer(authenticator_str);
+
+    const transaction = MultiAgentTransaction.deserialize(transaction_deserializer);
+    const authenticator = AccountAuthenticator.deserialize(authenticator_deserializer);
+
+    // Sign as fee payer
+    const signed = await signTransaction({
+      transactionOrPayload: transaction,
+      asFeePayer: true
+    });
+
+    // Submit with additional signers
+    const committedTxn = await submitTransaction({
+      senderAuthenticator: signed.authenticator,
+      transaction: transaction,
+      additionalSignersAuthenticators: [authenticator],
+      feePayerAuthenticator: signed.authenticator
+    });
+
+    // Wait for transaction completion
+    const client = aptosClient();
+    const status = await client.waitForTransaction({
+      transactionHash: committedTxn.hash
+    });
+
+    if (!status.success) {
+      throw new Error("Transaction Failed");
+    }
+
+    return committedTxn;
+  } catch (error) {
+    console.error("Error in gas-sponsored transaction:", error);
+    throw error;
+  }
+};
+
+// Hook for gas-sponsored transaction (similar to your useClaimTree example)
+export function useGasSponsoredPayment() {
+  return {
+    makePayment: async (
+      signTransaction: any,
+      submitTransaction: any,
+      userAddress: string,
+      amount: string,
+      metadataAddress: string,
+      paymentSession: any
+    ) => {
+      return await depositFungibleToContractSponsored(
+        signTransaction,
+        submitTransaction,
+        userAddress,
+        amount,
+        metadataAddress,
+        paymentSession
+      );
+    }
+  };
+}
+
 export const depositFungibleToContract = async (
   signAndSubmitTransaction: any,
   amount: string,
@@ -392,13 +506,6 @@ export const depositFungibleToContract = async (
     if (isNaN(Number(amount))) {
       throw new Error(`Invalid amount: ${amount}`);
     }
-
-    // Generate random text for unique transaction identification
-    const generateRandomText = () => {
-      const timestamp = Date.now().toString(36);
-      const randomString = Math.random().toString(36).substring(2, 15);
-      return `tx-${timestamp}-${randomString}`;
-    };
 
     // Use the standard wallet adapter format with string address
     const transactionPayload = {

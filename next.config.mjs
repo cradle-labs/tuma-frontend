@@ -4,8 +4,8 @@ const isProd = process.env.NODE_ENV === "production";
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["wallet-adapter-react", "wallet-adapter-plugin"],
-  assetPrefix: isProd ? "/aptos-wallet-adapter" : "",
-  basePath: isProd ? "/aptos-wallet-adapter" : "",
+  // assetPrefix: isProd ? "/aptos-wallet-adapter" : "",
+  // basePath: isProd ? "/aptos-wallet-adapter" : "",
   images: {
     unoptimized: true,
   },
