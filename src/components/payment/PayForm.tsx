@@ -328,13 +328,14 @@ const PayFormComponent = ({
             provider: providerName,
             receiver_id: phoneNumber, // This is the paybill number
             account_identity: accountNumber, // This is the account number
-            token: selectedBalance.currency.address!
+            token: selectedBalance.currency.address!,
           }
         : {
             payer: account.address.toString(),
             provider: providerName,
             receiver_id: phoneNumber,
-            token: selectedBalance.currency.address!
+            token: selectedBalance.currency.address!,
+            is_buy_goods: paymentType === "BUY_GOODS" // true for BUY_GOODS, false for MOBILE
           };
 
       const paymentSession = await createPaymentSession(paymentSessionPayload);

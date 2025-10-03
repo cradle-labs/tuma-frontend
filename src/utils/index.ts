@@ -82,6 +82,8 @@ export const createPaymentSession = async (params: {
   provider: string;
   receiver_id: string;
   token: string;
+  account_identity?: string;
+  is_buy_goods?: boolean;
 }) => {
   try {
     console.log("📤 createPaymentSession request:", {
