@@ -20,8 +20,9 @@ import {
 } from "@/hooks/useSupportedCurrencies";
 import { useCryptoBalances } from "@/hooks/useCryptoBalances";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { Loader2, CheckCircle, XCircle, CreditCard } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, CreditCard, TrendingUp } from "lucide-react";
 import { PaymentMethodDialog } from "./PaymentMethodDialog";
+import { HyperionYieldSheet } from "./HyperionYieldSheet";
 import Image from "next/image";
 
 interface DepositFormProps {
@@ -76,6 +77,7 @@ export function DepositForm({
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
     string | null
   >(null);
+  const [isHyperionSheetOpen, setIsHyperionSheetOpen] = useState(false);
 
   const [selectedCryptoCurrency, setSelectedCryptoCurrency] =
     useState<SupportedCurrency | null>(null);
@@ -722,6 +724,20 @@ export function DepositForm({
                   Status: {(paymentStatus as any)?.status || "Unknown"}
                 </div>
               )}
+              {/* Show Hyperion button when payment is completed successfully */}
+              {(status === "monitoring_payment" && 
+                (paymentStatus?.status === "completed" || paymentStatus?.status === "Completed" || 
+                 paymentStatus?.status === "success" || paymentStatus?.status === "Success")) && (
+                <Button
+                  onClick={() => setIsHyperionSheetOpen(true)}
+                  variant="primary"
+                  size="sm"
+                  className="mt-2 mr-2"
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Earn Yield on Hyperion
+                </Button>
+              )}
               {(status === "error" || status === "success") && (
                 <Button
                   onClick={reset}
@@ -762,6 +778,12 @@ export function DepositForm({
         onSelect={handlePaymentMethodSelect}
         onCreateNew={handleCreateNewPaymentMethod}
       />
+      
+      {isHyperionSheetOpen && (
+        <HyperionYieldSheet
+          close={() => setIsHyperionSheetOpen(false)}
+        />
+      )}
     </div>
   );
 }

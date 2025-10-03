@@ -87,12 +87,12 @@ export const useCryptoBalances = (): UseCryptoBalancesReturn => {
     if (!cryptoCurrencies.length || !allFungibleAssetBalances) return [];
 
     return cryptoCurrencies.map(currency => {
-      console.log(`\n--- Processing currency: ${currency.symbol} ---`);
-      console.log('Currency data:', {
-        id: currency.id,
-        symbol: currency.symbol,
-        address: currency.address
-      });
+      // console.log(`\n--- Processing currency: ${currency.symbol} ---`);
+      // console.log('Currency data:', {
+      //   id: currency.id,
+      //   symbol: currency.symbol,
+      //   address: currency.address
+      // });
 
       // Find matching blockchain balance using the same logic as successful components
       const matchingBalance = allFungibleAssetBalances.find(asset => {
@@ -100,19 +100,19 @@ export const useCryptoBalances = (): UseCryptoBalancesReturn => {
 
         // Primary match: exact match with currency address
         if (asset.asset_type === currency.address) {
-          console.log(`✅ Exact match found for ${currency.symbol}`);
+          // console.log(`✅ Exact match found for ${currency.symbol}`);
           return true;
         }
 
         // Special case for APT: check for aptos_coin pattern
         if (currency.symbol === "APT" && asset.asset_type.includes("::aptos_coin::AptosCoin")) {
-          console.log(`✅ APT pattern match found for ${currency.symbol}`);
+          // console.log(`✅ APT pattern match found for ${currency.symbol}`);
           return true;
         }
 
         // Special case for Gui Inu: use the specific address provided
         if (currency.name === "Gui Inu" && asset.asset_type === "0xe4ccb6d39136469f376242c31b34d10515c8eaaa38092f804db8e08a8f53c5b2::assets_v1::EchoCoin002") {
-          console.log(`✅ Gui Inu special address match found for ${currency.symbol}`);
+          // console.log(`✅ Gui Inu special address match found for ${currency.symbol}`);
           return true;
         }
         return false;

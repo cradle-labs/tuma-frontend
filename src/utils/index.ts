@@ -520,3 +520,81 @@ export const depositFungibleToContract = async (
   }
 };
 
+// Hyperion Zap In functionality
+export const createLiquiditySingle = async (
+  signAndSubmitTransaction: any,
+  params: {
+    token1Address: string;
+    token2Address: string;
+    poolIndex: number;
+    tickLower: number;
+    tickUpper: number;
+    amountIn: string;
+    slippageNumerator: number;
+    slippageDenominator: number;
+    thresholdNumerator: number;
+    thresholdDenominator: number;
+  }
+) => {
+  try {
+    if (!signAndSubmitTransaction) {
+      throw new Error("signAndSubmitTransaction is not available");
+    }
+
+    // Validate inputs
+    const {
+      token1Address,
+      token2Address,
+      poolIndex,
+      tickLower,
+      tickUpper,
+      amountIn,
+      slippageNumerator,
+      slippageDenominator,
+      thresholdNumerator,
+      thresholdDenominator
+    } = params;
+
+    // Validate required fields
+    if (!token1Address || !token2Address) {
+      throw new Error("Token addresses are required");
+    }
+
+    if (!amountIn || isNaN(Number(amountIn))) {
+      throw new Error("Valid amount is required");
+    }
+
+    console.log('Hyperion Zap In inputs:', params);
+
+    // Build the transaction payload according to Hyperion documentation
+    const transactionPayload = {
+      data: {
+        function: "0x8b4a2c4bb53857c718a04c020b98f8c2e1f99a68b0f57389a8bf5434cd22e05c::router_v3::create_liquidity_single",
+        typeArguments: [],
+        functionArguments: [
+          token1Address,
+          token2Address,
+          poolIndex,
+          tickLower,
+          tickUpper,
+          amountIn,
+          slippageNumerator,
+          slippageDenominator,
+          thresholdNumerator,
+          thresholdDenominator
+        ]
+      }
+    };
+
+    console.log('Hyperion Zap In payload:', transactionPayload);
+    
+    const response = await signAndSubmitTransaction(transactionPayload);
+    console.log('Hyperion Zap In response:', response);
+    
+    return response;
+  } catch (error) {
+    console.error("Error creating liquidity position:", error);
+    throw error;
+  }
+};
+
