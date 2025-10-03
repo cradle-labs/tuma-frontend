@@ -18,6 +18,7 @@ import { MyWallet } from "@/utils/standardWallet";
 import { registerWallet } from "@aptos-labs/wallet-standard";
 import { Payment } from "@/components/payment/Payment";
 import { Spotlight } from "@/components/SpotlightNew";
+import Image from "next/image";
 
 // Example of how to register a browser extension wallet plugin.
 // Browser extension wallets should call registerWallet once on page load.
@@ -37,15 +38,17 @@ if (isTelegramMiniApp) {
 
 export default function Home() {
   return (
-    <div className="w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative overflow-auto">
+    <div className="w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative overflow-x-hidden overflow-y-auto">
       {/* Navbar */}
       <nav className="top-0 left-0 right-0 z-50  backdrop-blur-sm border-b border-white/10">
         <div className="flex justify-between items-center px-6 py-4">
           <div>
-            <img 
+            <Image 
               src="/images/logo-white.png" 
               alt="Tooma Logo" 
               className="h-8 w-auto"
+              width={32}
+              height={32}
             />
           </div>
           <div className="flex items-center gap-2">
