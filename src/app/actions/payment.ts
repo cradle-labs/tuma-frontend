@@ -23,8 +23,9 @@ interface SerializedTransactionResponse {
 
 // Initialize Aptos client (adjust network as needed)
 const aptosConfig = new AptosConfig({ 
-  network: Network.TESTNET // Change to your target network
+  network: Network.MAINNET // Change to your target network
 });
+
 const aptos = new Aptos(aptosConfig);
 
 // Admin account setup - You'll need to set these environment variables
@@ -46,10 +47,17 @@ export async function getPaymentTransactionSerialized(
 
     const admin = getAdminAccount();
     
-    // Build multi-agent transaction with sponsor as secondary signer
-    const transaction = await aptos.transaction.build.multiAgent({
+    // Check sponsor account balance
+    const balance = await aptos.getAccountAPTAmount({
+      accountAddress: admin.accountAddress
+    });
+    console.log("Sponsor account:", admin.accountAddress.toString());
+    console.log("Sponsor balance:", balance, "octas");
+    
+    // Build simple transaction for fee payer sponsorship
+    const transaction = await aptos.transaction.build.simple({
       sender: params.address,
-      secondarySignerAddresses: [admin.accountAddress],
+      withFeePayer: true,
       data: {
         function: "0xce349ffbde2e28c21a4a7de7c4e1b3d72f1fe079494c7f8f8832bd6c8502e559::tuma::make_payment_fungible",
         typeArguments: [
@@ -60,11 +68,12 @@ export async function getPaymentTransactionSerialized(
           params.amount,
           params.paymentSessionId
         ]
-      }
+      },
+      
     });
 
-    // Sign transaction with admin account (sponsor)
-    const authenticator = aptos.sign({
+    // Sign transaction with admin account as fee payer
+    const authenticator = aptos.transaction.signAsFeePayer({
       transaction,
       signer: admin
     });

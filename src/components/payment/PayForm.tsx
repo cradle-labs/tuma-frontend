@@ -16,9 +16,9 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import {
   createPaymentSession,
   addPaymentMethod,
-  depositFungibleToContract,
   getPaymentStatus,
   aptosClient,
+  depositFungibleToContractSponsored,
 } from "@/utils/index";
 import tokenList from "@/utils/token-list.json";
 import { useToast } from "@/components/ui/use-toast";
@@ -83,7 +83,7 @@ const PayFormComponent = ({
     [getProvidersByCountry, selectedCountry]
   );
 
-  const { account, signAndSubmitTransaction, network } = useWallet();
+  const { account, signAndSubmitTransaction, signTransaction, submitTransaction, network } = useWallet();
   const { toast } = useToast();
   const { 
     cryptoBalances, 
@@ -272,7 +272,7 @@ const PayFormComponent = ({
   const isAccountNumberRequired = useMemo(() => isPaybill && !accountNumber, [isPaybill, accountNumber]);
 
   const handlePayment = async () => {
-    if (!account?.address || !signAndSubmitTransaction) {
+    if (!account?.address || !signTransaction || !submitTransaction) {
       toast({
         variant: "destructive",
         title: "Wallet not connected",
@@ -378,8 +378,11 @@ const PayFormComponent = ({
         address: selectedBalance.currency.address,
       });
 
-      await depositFungibleToContract(
-        signAndSubmitTransaction,
+      // Use gas-sponsored transaction
+      await depositFungibleToContractSponsored(
+        signTransaction,
+        submitTransaction,
+        account.address.toString(),
         amountInOctas,
         selectedBalance.currency.address!,
         paymentSession

@@ -1,4 +1,4 @@
-import { Aptos, AptosConfig, Network, MultiAgentTransaction, AccountAuthenticator, Deserializer } from "@aptos-labs/ts-sdk";
+import { Aptos, AptosConfig, Network, SimpleTransaction, AccountAuthenticator, Deserializer } from "@aptos-labs/ts-sdk";
 import { NetworkInfo } from "@aptos-labs/wallet-adapter-core";
 
 // Devnet client
@@ -16,19 +16,7 @@ export const MAINNET_CONFIG = new AptosConfig({ network: Network.MAINNET });
 export const MAINNET_CLIENT = new Aptos(MAINNET_CONFIG);
 
 export const aptosClient = (network?: NetworkInfo | null) => {
-  if (network?.name === Network.DEVNET) {
-    return DEVNET_CLIENT;
-  } else if (network?.name === Network.TESTNET) {
-    return TESTNET_CLIENT;
-  } else if (network?.name === Network.MAINNET) {
-    return MAINNET_CLIENT;
-  } else {
-    const CUSTOM_CONFIG = new AptosConfig({
-      network: Network.CUSTOM,
-      fullnode: network?.url,
-    });
-    return new Aptos(CUSTOM_CONFIG);
-  }
+  return MAINNET_CLIENT;
 };
 
 export const isSendableNetwork = (
@@ -419,21 +407,19 @@ export const depositFungibleToContractSponsored = async (
     const transaction_deserializer = new Deserializer(transaction_str);
     const authenticator_deserializer = new Deserializer(authenticator_str);
 
-    const transaction = MultiAgentTransaction.deserialize(transaction_deserializer);
+    const transaction = SimpleTransaction.deserialize(transaction_deserializer);
     const authenticator = AccountAuthenticator.deserialize(authenticator_deserializer);
 
-    // Sign as fee payer
+    // User signs as sender
     const signed = await signTransaction({
-      transactionOrPayload: transaction,
-      asFeePayer: true
+      transactionOrPayload: transaction
     });
 
-    // Submit with additional signers
+    // Submit with sponsor as fee payer (authenticator is sponsor's signature)
     const committedTxn = await submitTransaction({
-      senderAuthenticator: signed.authenticator,
       transaction: transaction,
-      additionalSignersAuthenticators: [authenticator],
-      feePayerAuthenticator: signed.authenticator
+      senderAuthenticator: signed.authenticator,
+      feePayerAuthenticator: authenticator
     });
 
     // Wait for transaction completion
