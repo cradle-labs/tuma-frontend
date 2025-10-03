@@ -346,18 +346,18 @@ const PayFormComponent = ({
         setPaymentStatus("creating_payment_method");
         setStatusMessage("Creating payment method...");
 
-        // const paymentMethod = await addPaymentMethod({
-        //   owner: account.address.toString(),
-        //   payment_method_type: "mobile-money",
-        //   identity: phoneNumber,
-        //   provider_id: mobileNetwork.toLowerCase(),
-        // });
+        const paymentMethod = await addPaymentMethod({
+          owner: account.address.toString(),
+          payment_method_type: "mobile-money",
+          identity: phoneNumber,
+          provider_id: mobileNetwork.toLowerCase(),
+        });
 
         // console.log("Payment method created:", paymentMethod);
       } else if (!isPaybill && selectedPaymentMethodId) {
-        // console.log("Using existing payment method:", selectedPaymentMethodId);
+        console.log("Using existing payment method:", selectedPaymentMethodId);
       } else {
-        // console.log("Paybill payment - skipping payment method creation");
+        console.log("Paybill payment - skipping payment method creation");
       }
 
       setPaymentStatus("depositing_to_contract");
@@ -454,6 +454,12 @@ const PayFormComponent = ({
               title: "Payment Status Unknown",
               description: "Unable to verify payment status. Please check your transaction manually or contact support.",
             });
+            
+            // Clear the timeout message after 10 seconds
+            setTimeout(() => {
+              setPaymentStatus("idle");
+              setStatusMessage("");
+            }, 5000);
           } else {
             // For other errors, still mark as success since the contract transaction succeeded
             setPaymentStatus("success");
@@ -1026,12 +1032,26 @@ const PayFormComponent = ({
       {/* Status Display */}
       {paymentStatus !== "idle" && (
         <div className="space-y-2">
-          <div className="p-3 bg-primary/10 border border-primary/20 rounded text-sm">
+          <div className={`p-3 rounded text-sm ${
+            statusMessage.includes("Receipt:")
+              ? "bg-green-500/10 border border-green-500/20"
+              : paymentStatus === "error" || statusMessage.includes("timed out")
+                ? "bg-red-500/10 border border-red-500/20"
+                : "bg-primary/10 border border-primary/20"
+          }`}>
             <div className="flex items-center gap-2">
               {isProcessing && (
                 <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               )}
-              <span className="text-primary">{statusMessage}</span>
+              <span className={
+                statusMessage.includes("Receipt:")
+                  ? "text-green-400"
+                  : paymentStatus === "error" || statusMessage.includes("timed out")
+                    ? "text-red-400"
+                    : "text-primary"
+              }>
+                {statusMessage}
+              </span>
             </div>
           </div>
         </div>
