@@ -22,11 +22,10 @@ export function AptosConnectWalletRow({ wallet, onConnect }: AptosConnectWalletR
       <WalletItem.ConnectButton asChild>
         <Button 
           size="lg" 
-          variant="outline" 
-          className="w-full gap-4 bg-gray-800 border-gray-700 hover:bg-gray-700 text-white h-14 px-4 justify-start"
+          className="w-full gap-4 bg-white/10 hover:bg-primary hover:text-black text-white h-14 px-4 justify-start"
           disabled={isLoading}
           >
-          <WalletItem.Icon className="h-6 w-6" />
+          <WalletItem.Icon className="h-6 w-6 hover:bg-black" />
           <div className="flex items-center justify-between w-full">
             <WalletItem.Name className="text-base font-normal" />
             {isLoading && (

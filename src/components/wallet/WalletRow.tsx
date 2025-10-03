@@ -23,7 +23,7 @@ export function WalletRow({ wallet, onConnect }: WalletRowProps) {
     <WalletItem
       wallet={wallet}
       onConnect={onConnect}
-      className="flex items-center justify-between px-4 py-4 gap-4 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors"
+      className="flex items-center justify-between px-4 py-4 gap-4 bg-white/10 rounded-lg transition-colors"
     >
       <div className="flex items-center gap-4">
         <WalletItem.Icon className="h-6 w-6" />
