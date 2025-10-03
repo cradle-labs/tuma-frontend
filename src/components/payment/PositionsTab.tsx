@@ -184,7 +184,7 @@ export function PositionsTab() {
                         Fee: {position?.position?.pool?.feeRate ? (parseFloat(position.position.pool.feeRate) / 10000).toFixed(2) : "0.00"}%
                       </span>
                       <span className="text-xs text-gray-500">•</span>
-                      <span className="text-xs text-gray-400">
+                      <span className={`text-xs font-medium ${position?.isActive ? "text-green-400" : "text-red-400"}`}>
                         {position?.isActive ? "Active" : "Inactive"}
                       </span>
                     </div>
