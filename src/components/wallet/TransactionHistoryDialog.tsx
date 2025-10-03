@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useAllTransactionHistory, TransactionData, TransactionType, PaymentTransactionData, OnrampTransactionData } from "../../hooks/useTransactionHistory";
+import { useSupportedCurrencies } from "../../hooks/useSupportedCurrencies";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -51,8 +52,13 @@ function isOnrampTransaction(transaction: TransactionData): transaction is Onram
 }
 
 function TransactionCard({ transaction }: { transaction: TransactionData }) {
+  // Get supported currencies to map token addresses to symbols
+  const { supportedTokensMap } = useSupportedCurrencies();
+  
   // Determine if this is a payment/offramp transaction or onramp transaction
   const isPayment = isPaymentTransaction(transaction);
+
+  console.log('transaction', transaction);
   
   // Get the appropriate amount to display
   const displayAmount = isPayment 
@@ -68,6 +74,32 @@ function TransactionCard({ transaction }: { transaction: TransactionData }) {
   const transactionHash = isPayment 
     ? transaction.transaction_hash 
     : transaction.on_chain_transaction_hash;
+  
+  // Get the token address from the transaction
+  const tokenAddress = isPayment 
+    ? transaction.transferred_token 
+    : transaction.target_token;
+  
+  // Get token symbol from the address
+  const getTokenSymbol = (address: string): string => {
+    if (!address) return "APT"; // Default fallback
+    
+    // Check if the address matches any supported token
+    const supportedToken = supportedTokensMap.get(address.toLowerCase());
+    if (supportedToken) {
+      return supportedToken.symbol;
+    }
+    
+    // Special case for Gui Inu
+    if (address === "0xe4ccb6d39136469f376242c31b34d10515c8eaaa38092f804db8e08a8f53c5b2::assets_v1::EchoCoin002") {
+      return "GUI";
+    }
+    
+    // Default fallback
+    return "APT";
+  };
+  
+  const tokenSymbol = getTokenSymbol(tokenAddress);
 
   return (
     <Card className="bg-white/5 backdrop-blur-md border-none rounded-lg">
@@ -131,7 +163,7 @@ function TransactionCard({ transaction }: { transaction: TransactionData }) {
                   {isPayment ? "Transferred" : "Final Quote"}
                 </p>
                 <p className="text-xs font-bold text-white">
-                  {parseFloat(tokenAmount).toFixed(6)} APT
+                  {parseFloat(tokenAmount).toFixed(2)} {tokenSymbol}
                 </p>
               </div>
             )}
@@ -221,6 +253,7 @@ function TransactionList({
 export function TransactionHistoryDialog({ children }: TransactionHistoryDialogProps) {
   const { account } = useWallet();
   const [activeTab, setActiveTab] = useState<TransactionType>("onramp");
+  const [statusFilter, setStatusFilter] = useState<"all" | "Completed" | "Pending" | "Failed">("all");
   
   const {
     onramp,
@@ -245,6 +278,11 @@ export function TransactionHistoryDialog({ children }: TransactionHistoryDialogP
         break;
       default:
         transactions = [];
+    }
+    
+    // Apply status filter if not "all"
+    if (statusFilter !== "all") {
+      transactions = transactions.filter(transaction => transaction.status === statusFilter);
     }
     
     // Sort transactions by requested_at in descending order (latest first)
@@ -307,6 +345,18 @@ export function TransactionHistoryDialog({ children }: TransactionHistoryDialogP
               <TabsTrigger value="onramp" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Wallet Deposits</TabsTrigger>
               <TabsTrigger value="payment" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Payments</TabsTrigger>
             </TabsList>
+            
+            {/* Status Filter Tabs */}
+            <div className="mb-4">
+              <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+                <TabsList className="grid w-full grid-cols-4 rounded-xl bg-white/5 flex-shrink-0">
+                  <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl text-xs">All</TabsTrigger>
+                  <TabsTrigger value="Completed" className="data-[state=active]:bg-green-500 data-[state=active]:text-white text-gray-400 hover:text-white rounded-xl text-xs">Completed</TabsTrigger>
+                  <TabsTrigger value="Pending" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white text-gray-400 hover:text-white rounded-xl text-xs">Pending</TabsTrigger>
+                  <TabsTrigger value="Failed" className="data-[state=active]:bg-red-500 data-[state=active]:text-white text-gray-400 hover:text-white rounded-xl text-xs">Failed</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
             
             <div className="flex-1 overflow-hidden">
               <TabsContent value="onramp" className="h-full overflow-y-auto">
