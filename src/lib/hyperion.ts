@@ -1,10 +1,11 @@
 import { Network } from "@aptos-labs/ts-sdk";
 import { initHyperionSDK } from '@hyperionxyz/sdk';
 
+const APTOS_API_KEY = process.env.APTOS_API_KEY!;
 // Initialize Hyperion SDK
 export const hyperionSDK = initHyperionSDK({
     network: Network.MAINNET,
-    APTOS_API_KEY: "aptoslabs_2DPisv73ai5_AUjsx4kdkSWgtBMePRgfSg4Jzf6uwesb3"
+    APTOS_API_KEY: APTOS_API_KEY
 });
 
 // Pool IDs to fetch
