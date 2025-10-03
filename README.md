@@ -1,53 +1,208 @@
-# Aptos Wallet Adapter Demo App
+# Tooma 
 
-This project is a demo of the Aptos Wallet Selector using [Next.js](https://nextjs.org/) and [shadcn/ui](https://ui.shadcn.com/).
+An application that enables users to make mobile money payments and fund wallets across multiple African countries using the Aptos blockchain. This app provides a seamless interface for both outgoing payments (Pay) and wallet funding (Fund Wallet) with real-time payment validation and status tracking.
 
-A live version is hosted at:
-https://aptos-labs.github.io/aptos-wallet-adapter
+## Features
 
-## Use shadcn/ui wallet selector for your own app
+### Payment Capabilities
+- **Mobile Money Payments**: Support for major mobile networks across Kenya, Uganda, Ghana, DRC, and Ethiopia
+- **Multiple Payment Types**: 
+  - Direct mobile payments
+  - Paybill payments (with account numbers)
+  - Buy goods payments
+- **Real-time Validation**: Phone number and payment method validation with debounced API calls
+- **Payment Status Tracking**: Real-time monitoring of transaction status with automatic polling
 
-If you want to add the shadcn/ui Aptos wallet selector to your shadcn-based app, follow these steps:
+### Wallet Integration
+- **Aptos Wallet Adapter**: Full integration with the Aptos ecosystem
+- **Multi-wallet Support**: Compatible with various Aptos wallets
+- **Telegram Integration**: Support for Telegram mini-app deployment
+- **Account Creation**: Automated wallet account creation and management
 
-- Follow the [shadcn/ui installation instructions](https://ui.shadcn.com/docs/installation) if you haven't already configured it in your app.
+### Supported Countries & Networks
+- **Kenya (KES)**: Safaricom, Airtel
+- **Uganda (UGX)**: MTN, Airtel  
+- **Ghana (GHS)**: MTN, AirtelTigo
+- **DRC (CDF)**: Airtel Money, Orange Money
+- **Ethiopia (ETB)**: Telebirr, Cbe Birr
 
-- Run the following command to install all of the shadcn/ui components that the wallet selector depends on:
+### User Experience
+- **Dark/Light Theme**: Theme toggle with system preference detection
+- **Responsive Design**: Mobile-first responsive interface
+- **Real-time Updates**: Live payment status updates and transaction history
+- **Smooth Animations**: Framer Motion animations and transitions
 
+## Tech Stack
+
+### Frontend Framework
+- **Next.js 15.5.4** - React framework with App Router
+- **React 18.3.1** - UI library
+- **TypeScript 5.8.3** - Type safety
+
+### Blockchain Integration
+- **@aptos-labs/ts-sdk** - Aptos blockchain SDK
+- **@aptos-labs/wallet-adapter-react** - Wallet connection and management
+- **@aptos-labs/wallet-standard** - Standard wallet interface
+- **@hyperionxyz/sdk** - Additional blockchain utilities
+
+### UI Components & Styling
+- **Tailwind CSS 3.4.1** - Utility-first CSS framework
+- **shadcn/ui** - High-quality React components built on Radix UI
+- **Radix UI** - Primitive components for accessibility and behavior
+- **Lucide React** - Icon library
+- **Framer Motion 12.23.22** - Animation library
+
+### State Management & Data Fetching
+- **TanStack Query 5.59.16** - Server state management
+- **React Query** - Data fetching and caching
+
+### Additional Libraries
+- **next-themes** - Theme management
+- **date-fns** - Date manipulation
+- **clsx & tailwind-merge** - Conditional styling utilities
+- **sonner** - Toast notifications
+
+### Development Tools
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
+- **Autoprefixer** - CSS vendor prefixing
+
+### Blockchain (Move)
+- **Aptos Framework** - Smart contract framework for Move language
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── actions/           # Server actions for payments and conversions
+│   ├── api/               # API routes for external services
+│   ├── layout.tsx         # Root layout with providers
+│   └── page.tsx           # Main application page
+├── components/            # React components
+│   ├── payment/           # Payment-specific components
+│   ├── wallet/            # Wallet-related components
+│   └── ui/                # shadcn/ui components
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utility libraries
+└── utils/                 # Helper functions and configurations
+
+move/                      # Move smart contracts
+├── Move.toml             # Move package configuration
+└── scripts/              # Move scripts
+```
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+ 
+- pnpm, npm, or yarn
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd nextjs-example
+```
+
+2. Install dependencies:
+```bash
+pnpm install
+# or
+npm install
+# or
+yarn install
+```
+
+3. Run the development server:
+```bash
+pnpm dev
+# or
+npm run dev
+# or
+yarn dev
+```
+
+4. Open [https://localhost:3000](https://localhost:3000) in your browser.
+
+### Environment Setup
+
+The application runs with HTTPS enabled by default for security and wallet compatibility. SSL certificates are included in the `certificates/` directory for local development.
+
+## Usage
+
+### For End Users
+1. **Connect Wallet**: Click the wallet selector to connect your Aptos wallet
+2. **Choose Payment Type**: 
+   - Select "Pay" to send money to mobile numbers
+   - Select "Fund Wallet" to add money to your account
+3. **Select Country**: Choose your country to see available mobile networks
+4. **Enter Details**: Fill in phone number, amount, and payment method
+5. **Confirm Transaction**: Review and confirm your payment
+6. **Track Status**: Monitor real-time payment status updates
+
+### For Developers
+
+#### Adding New Mobile Networks
+Update the `MOBILE_NETWORKS` object in `src/components/payment/Payment.tsx`:
+
+```typescript
+const MOBILE_NETWORKS = {
+  KES: ["Safaricom", "Airtel"],
+  // Add new country/networks here
+} as const;
+```
+
+#### Integrating into Your App
+
+If you want to add the shadcn/ui Aptos wallet selector to your app:
+
+1. Install shadcn/ui components:
 ```bash
 npx shadcn@latest add button collapsible dialog dropdown-menu toast
 ```
 
-- Copy the [wallet-selector.tsx](./src/components/WalletSelector.tsx) file from this repo to your `src/components/` directory.
+2. Copy the wallet components from this repo:
+- `src/components/WalletSelector.tsx`
+- `src/components/WalletProvider.tsx`
 
-- If you have not already configured `AptosWalletAdapterProvider` for your app, you can also copy the [wallet-provider.tsx](./src/components/WalletProvider.tsx) file from this repo. Be sure to install the `@aptos-labs/wallet-adapter-react` package and the wallet adapter plugins for the wallet options you plan to support.
+3. Wrap your app with the `WalletProvider` component
+4. Use `<WalletSelector />` where you want the connect button
 
-- Wrap your app with the `WalletProvider` component. See [layout.tsx](./src/app/layout.tsx) for an example.
+## API Integration
 
-- Render `<WalletSelector />` in your app where you want to place the "Connect Wallet" button. See [page.tsx](./src/app/page.tsx) as an example.
+The application integrates with external payment APIs for:
+- Phone number validation
+- Payment processing  
+- Exchange rate fetching
+- Transaction status monitoring
 
-## Run demo app locally
+API endpoints are configured in `src/app/api/` directory.
 
-First, run the development server:
+## Security Features
 
+- HTTPS enforcement for secure connections
+- Input validation and sanitization
+- Secure wallet connection protocols
+- Environment-based configuration management
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run linting and formatting:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run format
 ```
+5. Submit a pull request
 
-Open [https://localhost:3000](https://localhost:3000) with your browser to see the result.
+## License
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Apache-2.0
 
-## Learn more
+## Support
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-- [shadcn/ui Documentation](https://ui.shadcn.com/docs) - learn about shadcn/ui features and API.
+For issues and questions, please refer to the project's issue tracker or documentation.
