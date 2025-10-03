@@ -23,16 +23,12 @@ async function fetchSupportedCurrencies(): Promise<SupportedCurrency[]> {
   }
 
   const data = await response.json();
-  console.log('Raw supported currencies from API:', data);
-  console.log('Total currencies:', data.length);
+  
   
   // Filter and log USDC/USDT entries
   const usdcUsdtCurrencies = data.filter((currency: SupportedCurrency) => 
     currency.symbol === 'USDC' || currency.symbol === 'USDT' || currency.symbol === 'USDt'
   );
-  
-  console.log('USDC/USDT currencies found in API:', usdcUsdtCurrencies);
-  console.log('=== fetchSupportedCurrencies: API call complete ===');
   
   return data;
 }
@@ -72,7 +68,6 @@ export function useSupportedCurrencies() {
     return Array.from(uniqueCrypto.values());
   }, [data]);
 
-  console.log('cryptoCurrencies', cryptoCurrencies);
 
   const fiatCurrencies = useMemo(() => {
     if (!data) return [];
@@ -93,8 +88,7 @@ export function useSupportedCurrencies() {
 
   // Create a mapping from token addresses to supported currencies for easy lookup
   const supportedTokensMap = useMemo(() => {
-    console.log('=== useSupportedCurrencies: Building supportedTokensMap ===');
-    console.log('cryptoCurrencies:', cryptoCurrencies);
+    
     
     const map = new Map<string, SupportedCurrency>();
     cryptoCurrencies.forEach(currency => {
@@ -117,11 +111,7 @@ export function useSupportedCurrencies() {
     return (faAddress: string) => {
       const key = faAddress.toLowerCase();
       const isSupported = supportedTokensMap.has(key);
-      console.log(`=== isTokenSupported check ===`);
-      console.log(`Input faAddress: ${faAddress}`);
-      console.log(`Lookup key: ${key}`);
-      console.log(`Is supported: ${isSupported}`);
-      console.log(`Available keys in map:`, Array.from(supportedTokensMap.keys()));
+    
       return isSupported;
     };
   }, [supportedTokensMap]);
