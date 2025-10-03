@@ -115,7 +115,6 @@ export const useCryptoBalances = (): UseCryptoBalancesReturn => {
           console.log(`✅ Gui Inu special address match found for ${currency.symbol}`);
           return true;
         }
-
         return false;
       });
 
