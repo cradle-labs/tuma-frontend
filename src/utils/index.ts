@@ -408,7 +408,7 @@ export const depositFungibleToContract = async (
           "0x1::fungible_asset::Metadata"
         ],
         functionArguments: [
-          "0xa", // Simple string address instead of { inner: "0xa" }
+          metadataAddress, // Use the selected fungible asset's metadata address
           amount,
           paymentSession?.session_id || paymentSession?.id || "default_session_id" // Payment session ID as third argument
         ]

@@ -49,11 +49,15 @@ export function usePaymentStatus(
     enabled: enabled && !!transactionCode,
     refetchInterval: (query) => {
       const data = query.state.data as PaymentStatusData | undefined;
-      // Stop polling if payment is complete or failed
+      // Stop polling if payment is complete or failed (handle both uppercase and lowercase)
       if (data?.status === 'completed' || 
+          data?.status === 'Completed' ||
           data?.status === 'success' || 
+          data?.status === 'Success' ||
           data?.status === 'failed' || 
-          data?.status === 'error') {
+          data?.status === 'Failed' ||
+          data?.status === 'error' ||
+          data?.status === 'Error') {
         console.log('🏁 Stopping payment status polling - final status:', data?.status);
         return false;
       }

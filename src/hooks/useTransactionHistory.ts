@@ -2,22 +2,44 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-export interface TransactionData {
+// Base transaction interface with common fields
+interface BaseTransactionData {
   id: string;
-  requester: string;
-  payment_method_id: string;
   status: "Completed" | "Failed" | "Pending";
-  transaction_ref: string;
-  data: {
-    receipt: string;
-  } | null;
-  amount: string;
   requested_at: string;
   finalized_at: string | null;
+  data: {
+    receipt: string;
+    name?: string;
+  } | null;
+}
+
+// Onramp transaction interface
+export interface OnrampTransactionData extends BaseTransactionData {
+  requester: string;
+  payment_method_id: string;
+  transaction_ref: string;
+  amount: string;
   target_token: string;
   final_token_quote: string;
   on_chain_transaction_hash: string | null;
 }
+
+// Payment/Offramp transaction interface
+export interface PaymentTransactionData extends BaseTransactionData {
+  payment_provider_id: string;
+  payment_identity: string;
+  account_identity: string | null;
+  payer: string;
+  transaction_hash: string | null;
+  transferred_amount: string;
+  transferred_token: string;
+  final_fiat_value: string;
+  transaction_code: string | null;
+}
+
+// Union type for all transaction types
+export type TransactionData = OnrampTransactionData | PaymentTransactionData;
 
 export type TransactionType = "onramp" | "offramp" | "payment";
 

@@ -23,9 +23,10 @@ import {
 import tokenList from "@/utils/token-list.json";
 import { useToast } from "@/components/ui/use-toast";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
-import { useUserAssets } from "@/hooks/useUserAssets";
+import { useCryptoBalances } from "@/hooks/useCryptoBalances";
 import { useProviders } from "@/hooks/useProviders";
 import { useConversion } from "@/hooks/useConversion";
+import { useSupportedCurrencies, SupportedCurrency } from "@/hooks/useSupportedCurrencies";
 import { XCircle, CreditCard } from "lucide-react";
 import { PaymentMethodDialog } from "./PaymentMethodDialog";
 
@@ -54,16 +55,6 @@ type PaymentStatus =
   | "success"
   | "error";
 
-interface UserAsset {
-  amount: string;
-  asset_type: string;
-  metadata: {
-    name: string;
-    symbol: string;
-    decimals: number;
-    icon_uri?: string;
-  };
-}
 
 const PayFormComponent = ({
   phoneNumber,
@@ -94,12 +85,47 @@ const PayFormComponent = ({
 
   const { account, signAndSubmitTransaction, network } = useWallet();
   const { toast } = useToast();
-  const { userAssets, isLoadingAssets } = useUserAssets();
+  const { 
+    cryptoBalances, 
+    isLoading: isLoadingBalances,
+    getBalanceById,
+    hasSufficientBalance: checkSufficientBalance
+  } = useCryptoBalances();
+  const { 
+    cryptoCurrencies, 
+    isLoading: isLoadingSupportedCurrencies, 
+    isError: isSupportedCurrenciesError,
+    error: supportedCurrenciesError,
+    refetch: refetchSupportedCurrencies
+  } = useSupportedCurrencies();
+
+  console.log('cryptoCurrencies', cryptoCurrencies);
+
+  // Show all crypto balances from supported currencies
+  const availableCryptoBalances = useMemo(() => {
+    console.log('=== PayForm: All available crypto balances ===');
+    console.log('Total cryptoBalances:', cryptoBalances.length);
+    console.log('All cryptoBalances data:', cryptoBalances);
+    
+    return cryptoBalances;
+  }, [cryptoBalances]);
 
   const [amount, setAmount] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle");
   const [statusMessage, setStatusMessage] = useState("");
-  const [selectedAsset, setSelectedAsset] = useState<UserAsset | null>(null);
+  const [selectedCryptoCurrency, setSelectedCryptoCurrency] = useState<SupportedCurrency | null>(null);
+  
+  // Find the corresponding crypto balance when a cryptocurrency is selected
+  const selectedBalance = useMemo(() => {
+    if (!selectedCryptoCurrency) return null;
+    
+    // Find matching balance by currency ID
+    const matchingBalance = getBalanceById(selectedCryptoCurrency.id);
+    
+    console.log('Selected balance for', selectedCryptoCurrency.symbol, ':', matchingBalance);
+    
+    return matchingBalance || null;
+  }, [selectedCryptoCurrency, getBalanceById]);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
@@ -111,7 +137,7 @@ const PayFormComponent = ({
     setAccountNumber("");
     setPaymentStatus("idle");
     setStatusMessage("");
-    setSelectedAsset(null);
+    setSelectedCryptoCurrency(null);
     setSelectedPaymentMethodId(null);
     setPaymentType("MOBILE");
     setMobileNetwork("");
@@ -127,16 +153,25 @@ const PayFormComponent = ({
   const { exchangeRate, isLoadingExchangeRate, isUsingFallback } =
     useExchangeRate(currency);
 
-  // Use conversion hook for APT to KES conversion
+  // Use conversion hook for asset conversion
   const conversionParams = useMemo(() => {
-    if (!selectedAsset || !amount || parseFloat(amount) <= 0) return null;
+    if (!selectedCryptoCurrency || !amount || parseFloat(amount) <= 0) return null;
+    
+    // Use the cryptocurrency ID for conversion
+    const assetIdentifier = selectedCryptoCurrency.id;
+    
+    // console.log('Conversion using asset identifier:', {
+    //   symbol: selectedCryptoCurrency.symbol,
+    //   currencyId: selectedCryptoCurrency.id,
+    //   using: assetIdentifier
+    // });
     
     return {
-      from:   currency.toLowerCase(),
-      to: selectedAsset.metadata.symbol.toLowerCase(),
+      from: currency.toLowerCase(),
+      to: assetIdentifier,
       amount: parseFloat(amount)
     };
-  }, [selectedAsset, amount, currency]);
+  }, [selectedCryptoCurrency, amount, currency]);
 
   const { 
     data: conversionData, 
@@ -149,27 +184,26 @@ const PayFormComponent = ({
     paymentStatus !== "success" &&
     paymentStatus !== "error";
 
-  // Auto-select the first asset if none is selected
+  // Auto-select the first available cryptocurrency if none is selected
   useEffect(() => {
-    if (userAssets.length > 0 && !selectedAsset) {
-      setSelectedAsset(userAssets[0]);
+    if (cryptoCurrencies.length > 0 && !selectedCryptoCurrency) {
+      // Try to find a cryptocurrency that has a balance > 0
+      const cryptoWithBalance = cryptoCurrencies.find(crypto => {
+        const balance = getBalanceById(crypto.id);
+        return balance && parseFloat(balance.balance.formatted) > 0;
+      });
+      
+      if (cryptoWithBalance) {
+        setSelectedCryptoCurrency(cryptoWithBalance);
+      } else {
+        // Fallback to first cryptocurrency
+        setSelectedCryptoCurrency(cryptoCurrencies[0]);
+      }
     }
-  }, [userAssets, selectedAsset]);
+  }, [cryptoCurrencies, selectedCryptoCurrency, getBalanceById]);
 
-  const getProviderIdFromNetwork = (network: string, country: string) => {
-    const networkMap: Record<string, Record<string, string>> = {
-      KES: { Safaricom: "mpesa", Airtel: "airtel-ke" },
-      UGX: { MTN: "mtn-ug", Airtel: "airtel-ug" },
-      GHS: { MTN: "mtn-gh", AirtelTigo: "airteltigo-gh" },
-      CDF: { "Airtel Money": "airtel-cd", "Orange Money": "orange-cd" },
-      ETB: { Telebirr: "telebirr", "Cbe Birr": "cbe-et" },
-    };
-    return networkMap[country]?.[network] || network.toLowerCase();
-  };
 
-  const formatAssetAmount = (amount: string, decimals: number) => {
-    return (parseFloat(amount) / Math.pow(10, decimals)).toFixed(6);
-  };
+  // Note: formatAssetAmount is no longer needed as useCryptoBalances provides formatted amounts
 
   // Memoize asset price function
   const getAssetPriceInUSDC = useCallback((symbol: string): number => {
@@ -186,9 +220,9 @@ const PayFormComponent = ({
   // Memoize calculation functions to prevent unnecessary re-renders
   const calculateAssetAmount = useMemo(() => {
     return (fiatAmount: string): number => {
-      if (!selectedAsset || !fiatAmount) return 0;
+      if (!selectedCryptoCurrency || !fiatAmount) return 0;
 
-      // Use conversion data if available - the converted field is already the APT amount
+      // Use conversion data if available - the converted field is already the asset amount
       if (conversionData && conversionData.converted > 0) {
         return conversionData.converted;
       }
@@ -198,12 +232,12 @@ const PayFormComponent = ({
       
       const fiatValue = parseFloat(fiatAmount);
       const usdcValue = fiatValue / exchangeRate; // Convert fiat to USDC
-      const assetPrice = getAssetPriceInUSDC(selectedAsset.metadata.symbol);
+      const assetPrice = getAssetPriceInUSDC(selectedCryptoCurrency.symbol);
       const assetAmount = usdcValue / assetPrice; // Convert USDC to asset
 
       return assetAmount;
     };
-  }, [selectedAsset, exchangeRate, getAssetPriceInUSDC, conversionData]);
+  }, [selectedCryptoCurrency, exchangeRate, getAssetPriceInUSDC, conversionData]);
 
   // Helper function to convert asset amount to octas (smallest unit)
   const convertToOctas = useCallback(
@@ -213,19 +247,15 @@ const PayFormComponent = ({
     []
   );
 
-  // Memoize balance check
+  // Memoize balance check using useCryptoBalances helper
   const hasSufficientBalance = useMemo(() => {
     return (): boolean => {
-      if (!selectedAsset || !amount) return true;
+      if (!selectedCryptoCurrency || !amount) return true;
 
       const requiredAssetAmount = calculateAssetAmount(amount);
-      const availableBalance = parseFloat(
-        formatAssetAmount(selectedAsset.amount, selectedAsset.metadata.decimals)
-      );
-
-      return requiredAssetAmount <= availableBalance;
+      return checkSufficientBalance(selectedCryptoCurrency.id, requiredAssetAmount);
     };
-  }, [selectedAsset, amount, calculateAssetAmount]);
+  }, [selectedCryptoCurrency, amount, calculateAssetAmount, checkSufficientBalance]);
 
   const handlePaymentMethodSelect = useCallback((phoneNumber: string, paymentMethodId?: string) => {
     setPhoneNumber(phoneNumber);
@@ -236,6 +266,10 @@ const PayFormComponent = ({
     setSelectedPaymentMethodId(null);
     setPhoneNumber("");
   }, [setPhoneNumber]);
+
+  // Check if account number is required for paybill
+  const isPaybill = useMemo(() => selectedCountry === "KES" && paymentType === "PAYBILL", [selectedCountry, paymentType]);
+  const isAccountNumberRequired = useMemo(() => isPaybill && !accountNumber, [isPaybill, accountNumber]);
 
   const handlePayment = async () => {
     if (!account?.address || !signAndSubmitTransaction) {
@@ -253,15 +287,18 @@ const PayFormComponent = ({
       !amount ||
       parseFloat(amount) <= 0 ||
       parseFloat(amount) < 20 ||
-      !selectedAsset ||
-      !exchangeRate
+      !selectedBalance ||
+      !exchangeRate ||
+      isAccountNumberRequired
     ) {
       toast({
         variant: "destructive",
         title: "Invalid input",
         description: parseFloat(amount || "0") > 0 && parseFloat(amount || "0") < 20 
           ? "Minimum amount is 20" 
-          : "Please fill in all fields and select an asset to convert",
+          : isAccountNumberRequired
+            ? "Please enter account number for paybill"
+            : "Please fill in all fields and select an asset to convert",
       });
       return;
     }
@@ -272,7 +309,7 @@ const PayFormComponent = ({
       toast({
         variant: "destructive",
         title: "Insufficient balance",
-        description: `You need ${requiredAssetAmount.toFixed(6)} ${selectedAsset.metadata.symbol} but only have ${formatAssetAmount(selectedAsset.amount, selectedAsset.metadata.decimals)} available`,
+        description: `You need ${requiredAssetAmount.toFixed(6)} ${selectedBalance.currency.symbol} but only have ${selectedBalance.balance.formatted} available`,
       });
       return;
     }
@@ -281,36 +318,46 @@ const PayFormComponent = ({
       setPaymentStatus("creating_payment_session");
       setStatusMessage("Creating payment session...");
 
-      const providerId = getProviderIdFromNetwork(
-        mobileNetwork,
-        selectedCountry
-      );
+      // Use mobile network name in lowercase as provider
+      const providerName = mobileNetwork.toLowerCase();
 
       // Create payment session first
-      const paymentSession = await createPaymentSession({
-        payer: account.address.toString(),
-        provider: mobileNetwork.toLowerCase(),
-        receiver_id: phoneNumber,
-        token: "0xa"
-      });
+      const paymentSessionPayload = selectedCountry === "KES" && paymentType === "PAYBILL" 
+        ? {
+            payer: account.address.toString(),
+            provider: providerName,
+            receiver_id: phoneNumber, // This is the paybill number
+            account_identity: accountNumber, // This is the account number
+            token: selectedBalance.currency.address!
+          }
+        : {
+            payer: account.address.toString(),
+            provider: providerName,
+            receiver_id: phoneNumber,
+            token: selectedBalance.currency.address!
+          };
 
-      console.log("Payment session created:", paymentSession);
+      const paymentSession = await createPaymentSession(paymentSessionPayload);
 
-      // Only create payment method if we don't have an existing one
-      if (!selectedPaymentMethodId) {
+      // console.log("Payment session created:", paymentSession);
+
+      // Only create payment method if we don't have an existing one and it's not a paybill payment
+      if (!isPaybill && !selectedPaymentMethodId) {
         setPaymentStatus("creating_payment_method");
         setStatusMessage("Creating payment method...");
 
-        const paymentMethod = await addPaymentMethod({
-          owner: account.address.toString(),
-          payment_method_type: "mobile-money",
-          identity: phoneNumber,
-          provider_id: mobileNetwork.toLowerCase(),
-        });
+        // const paymentMethod = await addPaymentMethod({
+        //   owner: account.address.toString(),
+        //   payment_method_type: "mobile-money",
+        //   identity: phoneNumber,
+        //   provider_id: mobileNetwork.toLowerCase(),
+        // });
 
-        console.log("Payment method created:", paymentMethod);
+        // console.log("Payment method created:", paymentMethod);
+      } else if (!isPaybill && selectedPaymentMethodId) {
+        // console.log("Using existing payment method:", selectedPaymentMethodId);
       } else {
-        console.log("Using existing payment method:", selectedPaymentMethodId);
+        // console.log("Paybill payment - skipping payment method creation");
       }
 
       setPaymentStatus("depositing_to_contract");
@@ -318,26 +365,23 @@ const PayFormComponent = ({
 
       // Calculate the exact asset amount shown to user and convert to octas
       const assetAmountNeeded = calculateAssetAmount(amount);
+      const decimals = selectedBalance.currency.decimals || 8;
       const amountInOctas = convertToOctas(
         assetAmountNeeded,
-        selectedAsset.metadata.decimals
+        decimals
       );
-      console.log("Asset amount needed:", amountInOctas);
-
+      
       console.log("Sending to contract:", {
         assetAmountNeeded: assetAmountNeeded.toFixed(6),
         amountInOctas,
-        decimals: selectedAsset.metadata.decimals,
-        assetType: selectedAsset.asset_type,
+        decimals,
+        address: selectedBalance.currency.address,
       });
-      console.log("Amount in octas:", amountInOctas);
-      console.log("Asset type (metadata address):", selectedAsset.asset_type);
-      console.log("Full selected asset data:", selectedAsset);
 
       await depositFungibleToContract(
         signAndSubmitTransaction,
         amountInOctas,
-        selectedAsset.asset_type,
+        selectedBalance.currency.address!,
         paymentSession
       );
 
@@ -357,8 +401,9 @@ const PayFormComponent = ({
                 const statusResponse = await getPaymentStatus(paymentCode);
                 console.log("Payment status response:", statusResponse);
                 
-                // Check if payment is completed
-                if (statusResponse.status === "Completed" || statusResponse.status === "completed") {
+                // Check if payment is completed (handle both uppercase and lowercase)
+                if (statusResponse.status === "Completed" || statusResponse.status === "completed" ||
+                    statusResponse.status === "Success" || statusResponse.status === "success") {
                   return statusResponse;
                 }
                 
@@ -389,6 +434,7 @@ const PayFormComponent = ({
           setPaymentStatus("success");
           setStatusMessage(`Payment ${finalStatus.status.toLowerCase()}! Receipt: ${finalStatus.data?.receipt || 'N/A'}`);
           toast({
+            variant: "success",
             title: "Success",
             description: `Payment completed successfully! Receipt: ${finalStatus.data?.receipt || 'N/A'}`,
           });
@@ -399,23 +445,36 @@ const PayFormComponent = ({
           }, 3000); // Wait 3 seconds to let user see the success message
         } catch (statusError) {
           console.error("Error checking payment status:", statusError);
-          // Still mark as success since the contract transaction succeeded
-          setPaymentStatus("success");
-          setStatusMessage("Payment processed successfully! (Status check timed out)");
-          toast({
-            title: "Success", 
-            description: "Payment completed successfully! Status check timed out but transaction succeeded.",
-          });
-          
-          // Clear form after successful payment
-          setTimeout(() => {
-            clearForm();
-          }, 3000);
+          // Check if this is a timeout error specifically
+          if (statusError instanceof Error && statusError.message.includes("timeout")) {
+            setPaymentStatus("error");
+            setStatusMessage("Payment status check timed out - please verify manually");
+            toast({
+              variant: "destructive",
+              title: "Payment Status Unknown",
+              description: "Unable to verify payment status. Please check your transaction manually or contact support.",
+            });
+          } else {
+            // For other errors, still mark as success since the contract transaction succeeded
+            setPaymentStatus("success");
+            setStatusMessage("Payment processed successfully! (Status check failed)");
+            toast({
+              variant: "success",
+              title: "Success", 
+              description: "Payment completed successfully! Status check failed but transaction succeeded.",
+            });
+            
+            // Clear form after successful payment
+            setTimeout(() => {
+              clearForm();
+            }, 3000);
+          }
         }
       } else {
         setPaymentStatus("success");
         setStatusMessage("Payment processed successfully!");
         toast({
+          variant: "success",
           title: "Success",
           description: "Payment completed successfully!",
         });
@@ -440,89 +499,127 @@ const PayFormComponent = ({
 
   return (
     <div className="space-y-3 mt-6">
-      {/* Header with Pay label and Asset Selection */}
+      {/* Header with Pay label and Cryptocurrency Selection */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-semibold text-white">Pay</h3>
 
-        {/* Asset Selection */}
+        {/* Cryptocurrency Selection */}
         <div>
-          {isLoadingAssets ? (
+          {isLoadingSupportedCurrencies ? (
             <div className="flex items-center gap-2 px-3 py-2 bg-white/5 backdrop-blur-md border border-white/20 rounded text-sm">
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span className="text-gray-400">Loading...</span>
             </div>
-          ) : userAssets.length === 0 ? (
+          ) : isSupportedCurrenciesError ? (
+            <div className="flex items-center justify-between px-3 py-2 bg-red-500/10 border border-red-500/20 rounded text-sm">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-red-400" />
+                <span className="text-red-400">Failed to load</span>
+              </div>
+              <Button
+                onClick={() => refetchSupportedCurrencies()}
+                variant="outline"
+                size="sm"
+                className="text-xs h-6 px-2"
+              >
+                Retry
+              </Button>
+            </div>
+          ) : cryptoCurrencies.length === 0 ? (
             <div className="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-400">
-              No assets found
+              No cryptocurrencies found
             </div>
           ) : (
             <Select
-              value={selectedAsset?.asset_type || ""}
+              value={selectedCryptoCurrency?.id || ""}
               onValueChange={(value) => {
-                const asset = userAssets.find((a) => a.asset_type === value);
-                setSelectedAsset(asset || null);
+                const currency = cryptoCurrencies.find((c) => c.id === value);
+                setSelectedCryptoCurrency(currency || null);
               }}
             >
               <SelectTrigger className="min-w-[120px] bg-white/5 backdrop-blur-md border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg">
                 <div className="flex items-center gap-2">
-                  {selectedAsset ? (
+                  {selectedCryptoCurrency ? (
                     <>
-                      {selectedAsset.metadata.symbol === "APT" ? (
+                      {selectedCryptoCurrency.symbol === "APT" ? (
                         <img
                           src="/images/aptos-new.png"
                           alt="APT"
                           className="w-5 h-5 rounded-full"
                         />
-                      ) : selectedAsset.metadata.icon_uri ? (
-                        <img
-                          src={selectedAsset.metadata.icon_uri}
-                          alt={selectedAsset.metadata.symbol}
-                          className="w-5 h-5 rounded-full"
-                        />
+                      ) : selectedCryptoCurrency.symbol === "USDC" ? (
+                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                          $
+                        </div>
+                      ) : selectedCryptoCurrency.symbol === "USDT" || selectedCryptoCurrency.symbol === "USDt" ? (
+                        <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                          T
+                        </div>
+                      ) : selectedCryptoCurrency.symbol === "WBTC" ? (
+                        <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                          ₿
+                        </div>
+                      ) : selectedCryptoCurrency.symbol === "xBTC" ? (
+                        <div className="w-5 h-5 bg-orange-600 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                          x₿
+                        </div>
                       ) : (
                         <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">
-                          {selectedAsset.metadata.symbol.charAt(0)}
+                          {selectedCryptoCurrency.symbol.charAt(0)}
                         </div>
                       )}
                       <span className="font-medium">
-                        {selectedAsset.metadata.symbol}
+                        {selectedCryptoCurrency.symbol}
                       </span>
                     </>
                   ) : (
-                    <span className="text-gray-400">Select Asset</span>
+                    <span className="text-gray-400">Select Cryptocurrency</span>
                   )}
                 </div>
               </SelectTrigger>
               <SelectContent
                 position="popper"
                 sideOffset={4}
-                className="z-[100003] bg-black/90 border-white/10"
+                className="z-[100003] bg-black/90 border-white/10 max-h-60 overflow-y-auto"
               >
-                {userAssets.map((asset) => (
+                {cryptoCurrencies.map((currency) => (
                   <SelectItem
-                    key={asset.asset_type}
-                    value={asset.asset_type}
+                    key={currency.id}
+                    value={currency.id}
                     className="text-white"
                   >
                     <div className="flex items-center gap-2">
-                      {asset.metadata.symbol === "APT" ? (
+                      {currency.symbol === "APT" ? (
                         <img
                           src="/images/aptos-apt-logo.png"
                           alt="APT"
                           className="w-5 h-5 rounded-full"
                         />
-                      ) : asset.metadata.icon_uri ? (
-                        <img
-                          src={asset.metadata.icon_uri}
-                          alt={asset.metadata.symbol}
-                          className="w-5 h-5 rounded-full"
-                        />
+                      ) : currency.symbol === "USDC" ? (
+                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                          $
+                        </div>
+                      ) : currency.symbol === "USDT" || currency.symbol === "USDt" ? (
+                        <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                          T
+                        </div>
+                      ) : currency.symbol === "WBTC" ? (
+                        <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                          ₿
+                        </div>
+                      ) : currency.symbol === "xBTC" ? (
+                        <div className="w-5 h-5 bg-orange-600 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                          x₿
+                        </div>
                       ) : (
                         <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">
-                          {asset.metadata.symbol.charAt(0)}
+                          {currency.symbol.charAt(0)}
                         </div>
                       )}
-                      <span>{asset.metadata.symbol}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{currency.symbol}</span>
+                        <span className="text-xs text-gray-400">{currency.name}</span>
+                      </div>
                     </div>
                   </SelectItem>
                 ))}
@@ -609,19 +706,19 @@ const PayFormComponent = ({
               setPaymentType(value as "MOBILE" | "PAYBILL" | "BUY_GOODS")
             }
           >
-            <TabsList className="grid w-full grid-cols-2 bg-white/5 backdrop-blur-md">
+            <TabsList className="grid w-full grid-cols-3 bg-white/5 backdrop-blur-md">
               <TabsTrigger
                 value="MOBILE"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black data-[state=active]:rounded-lg text-gray-400 hover:text-white text-xs font-normal"
               >
                 Mobile Number
               </TabsTrigger>
-              {/* <TabsTrigger
+              <TabsTrigger
                 value="PAYBILL"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black data-[state=active]:rounded-lg text-gray-400 hover:text-white text-xs font-normal"
               >
                 Paybill
-              </TabsTrigger> */}
+              </TabsTrigger>
               <TabsTrigger
                 value="BUY_GOODS"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black data-[state=active]:rounded-lg text-gray-400 hover:text-white text-xs font-normal"
@@ -709,36 +806,50 @@ const PayFormComponent = ({
             : "Phone Number"}
         </Label>
         <div className="space-y-2">
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDialogOpen(true)}
-              disabled={paymentStatus !== "idle"}
-              className="bg-white/5 backdrop-blur-md border-white/20 text-white hover:text-gray-600 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 shadow-lg flex-shrink-0"
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Select
-            </Button>
+          {isPaybill ? (
+            // For paybill, show direct input without payment method selection
             <Input
               id="phone"
               value={phoneNumber}
               onChange={(e) => {
                 setPhoneNumber(e.target.value);
+                // Clear any selected payment method when user types directly
+                setSelectedPaymentMethodId(null);
               }}
-              placeholder={
-                selectedCountry === "KES"
-                  ? paymentType === "MOBILE"
-                    ? "0712345678"
-                    : paymentType === "PAYBILL"
-                      ? "123456"
-                      : "890123"
-                  : "0712345678"
-              }
-              className="bg-white/5 backdrop-blur-md border-white/20 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg flex-1"
+              placeholder="123456"
+              className="bg-white/5 backdrop-blur-md border-white/20 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg"
             />
-          </div>
-          {selectedPaymentMethodId && (
+          ) : (
+            // For other payment types, show payment method selection
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(true)}
+                disabled={paymentStatus !== "idle"}
+                className="bg-white/5 backdrop-blur-md border-white/20 text-white hover:text-gray-600 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 shadow-lg flex-shrink-0"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Select
+              </Button>
+              <Input
+                id="phone"
+                value={phoneNumber}
+                onChange={(e) => {
+                  setPhoneNumber(e.target.value);
+                }}
+                placeholder={
+                  selectedCountry === "KES"
+                    ? paymentType === "MOBILE"
+                      ? "0712345678"
+                      : "890123" // Till number
+                    : "0712345678"
+                }
+                className="bg-white/5 backdrop-blur-md border-white/20 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg flex-1"
+              />
+            </div>
+          )}
+          {!isPaybill && selectedPaymentMethodId && (
             <p className="text-xs text-green-400">✓ Ok</p>
           )}
           {isValidating && (
@@ -770,9 +881,7 @@ const PayFormComponent = ({
             required={paymentType === "PAYBILL"}
             className="bg-white/5 backdrop-blur-md border-white/20 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/10 transition-all duration-200 shadow-lg"
           />
-          <div className="text-sm text-gray-400">
-            Enter the account number for this paybill
-          </div>
+    
         </div>
       )}
       {/* Amount Input Section */}
@@ -805,7 +914,7 @@ const PayFormComponent = ({
             </div>
           )}
           {parseFloat(amount || "0") >= 20 &&
-            selectedAsset &&
+            selectedBalance &&
             !hasSufficientBalance() && (
               <div className="text-sm text-red-400 mb-4">
                 Insufficient balance for this amount
@@ -813,7 +922,7 @@ const PayFormComponent = ({
             )}
 
           {/* You'll pay section */}
-          {parseFloat(amount || "0") > 0 && selectedAsset && (exchangeRate || conversionData) && (
+          {parseFloat(amount || "0") > 0 && selectedCryptoCurrency && (exchangeRate || conversionData) && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-400">You'll pay</span>
@@ -829,25 +938,35 @@ const PayFormComponent = ({
                         {calculateAssetAmount(amount).toFixed(6)}
                       </span>
                       <div className="flex items-center gap-1">
-                        {selectedAsset.metadata.symbol === "APT" ? (
+                        {selectedCryptoCurrency && selectedCryptoCurrency.symbol === "APT" ? (
                           <img
                             src="/images/aptos-new.png"
                             alt="APT"
                             className="w-4 h-4 rounded-full"
                           />
-                        ) : selectedAsset.metadata.icon_uri ? (
-                          <img
-                            src={selectedAsset.metadata.icon_uri}
-                            alt={selectedAsset.metadata.symbol}
-                            className="w-4 h-4 rounded-full"
-                          />
+                        ) : selectedCryptoCurrency && selectedCryptoCurrency.symbol === "USDC" ? (
+                          <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                            $
+                          </div>
+                        ) : selectedCryptoCurrency && (selectedCryptoCurrency.symbol === "USDT" || selectedCryptoCurrency.symbol === "USDt") ? (
+                          <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                            T
+                          </div>
+                        ) : selectedCryptoCurrency && selectedCryptoCurrency.symbol === "WBTC" ? (
+                          <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                            ₿
+                          </div>
+                        ) : selectedCryptoCurrency && selectedCryptoCurrency.symbol === "xBTC" ? (
+                          <div className="w-4 h-4 bg-orange-600 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                            x₿
+                          </div>
                         ) : (
                           <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">
-                            {selectedAsset.metadata.symbol.charAt(0)}
+                            {(selectedCryptoCurrency?.symbol || '?').charAt(0)}
                           </div>
                         )}
                         <span className="text-gray-300">
-                          {selectedAsset.metadata.symbol}
+                          {selectedCryptoCurrency?.symbol || 'Unknown'}
                         </span>
                       </div>
                     </>
@@ -859,7 +978,7 @@ const PayFormComponent = ({
                 <div className="text-xs text-gray-500">
                   {conversionData ? (
                     <>
-                      1 {selectedAsset.metadata.symbol} = {(conversionData.to_usd_quote).toFixed(2)} USD
+                      1 {selectedCryptoCurrency?.symbol} = {(conversionData.to_usd_quote).toFixed(2)} USD
                       <br />
                       1 USD = {conversionData.from_usd_quote} {currentCountry?.currency || selectedCountry}
                     </>
@@ -874,11 +993,8 @@ const PayFormComponent = ({
                 </div>
                 <div className="text-xs text-gray-500">
                   Balance:{" "}
-                  {formatAssetAmount(
-                    selectedAsset.amount,
-                    selectedAsset.metadata.decimals
-                  )}{" "}
-                  {selectedAsset.metadata.symbol}
+                  {selectedBalance ? selectedBalance.balance.formatted : '0'}{" "}
+                  {selectedCryptoCurrency?.symbol || 'Unknown'}
                 </div>
               </div>
 
@@ -927,13 +1043,14 @@ const PayFormComponent = ({
           disabled={
             isProcessing ||
             !account?.address ||
-            !selectedAsset ||
-            userAssets.length === 0 ||
+            !selectedBalance ||
+            availableCryptoBalances.length === 0 ||
             parseFloat(amount || "0") <= 0 ||
             parseFloat(amount || "0") < 20 ||
             !exchangeRate ||
             isLoadingExchangeRate ||
-            (parseFloat(amount || "0") >= 20 && !hasSufficientBalance())
+            (parseFloat(amount || "0") >= 20 && !hasSufficientBalance()) ||
+            isAccountNumberRequired
           }
           variant="primary"
           className="w-full"
@@ -943,14 +1060,16 @@ const PayFormComponent = ({
             : parseFloat(amount || "0") > 0 && parseFloat(amount || "0") < 20
               ? "Minimum amount is 20"
               : parseFloat(amount || "0") >= 20 &&
-                selectedAsset &&
+                selectedBalance &&
                 !hasSufficientBalance()
                 ? "Insufficient Balance"
-                : isLoadingExchangeRate
-                  ? "Loading rates..."
-                  : !exchangeRate
-                    ? "Exchange rate unavailable"
-                    : "Send Money"}
+                : isAccountNumberRequired
+                  ? "Enter account number"
+                  : isLoadingExchangeRate
+                    ? "Loading rates..."
+                    : !exchangeRate
+                      ? "Exchange rate unavailable"
+                      : "Send Money"}
         </Button>
       </div>
 

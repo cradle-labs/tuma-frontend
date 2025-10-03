@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useUserTokens } from "../../hooks/useUserTokens";
 import { useTokenPrices } from "../../hooks/useTokenPrices";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
+import { useSupportedCurrencies } from "../../hooks/useSupportedCurrencies";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import Image from "next/image";
 import tokenList from "../../utils/token-list.json";
@@ -36,6 +37,7 @@ export function EmbeddedTokenList({ selectedCurrency = "KES" }: EmbeddedTokenLis
   const { network } = useWallet();
   const { coinBalances, isLoadingCoinBalances } = useUserTokens();
   const { exchangeRate } = useExchangeRate("KES");
+  const { isTokenSupported, isLoading: isLoadingSupportedCurrencies } = useSupportedCurrencies();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("All");
 
@@ -206,21 +208,27 @@ export function EmbeddedTokenList({ selectedCurrency = "KES" }: EmbeddedTokenLis
       return matchesSearch && matchesTab;
     });
 
-    // Sort tokens: owned tokens first, then by symbol alphabetically
+    // Sort tokens: owned tokens first, then supported tokens, then unsupported tokens
     filtered.sort((a, b) => {
       const aBalance = getUserBalance(a.faAddress);
       const bBalance = getUserBalance(b.faAddress);
+      const aSupported = isTokenSupported(a.faAddress);
+      const bSupported = isTokenSupported(b.faAddress);
 
       // If one has balance and other doesn't, prioritize the one with balance
       if (aBalance && !bBalance) return -1;
       if (!aBalance && bBalance) return 1;
 
-      // If both have balance or both don't have balance, sort alphabetically by symbol
+      // If both have balance or both don't have balance, prioritize supported tokens
+      if (aSupported && !bSupported) return -1;
+      if (!aSupported && bSupported) return 1;
+
+      // If both have same balance and support status, sort alphabetically by symbol
       return a.symbol.localeCompare(b.symbol);
     });
 
     return filtered;
-  }, [searchQuery, activeTab, coinBalances]);
+  }, [searchQuery, activeTab, coinBalances, isTokenSupported]);
 
   // Copy to clipboard function
   const copyToClipboard = async (text: string, type: string) => {
@@ -287,7 +295,7 @@ export function EmbeddedTokenList({ selectedCurrency = "KES" }: EmbeddedTokenLis
 
           <TabsContent value={activeTab} className="mt-4">
             <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto">
-              {isLoadingCoinBalances ? (
+              {isLoadingCoinBalances || isLoadingSupportedCurrencies ? (
                 <div className="text-center py-8">
                   <div className="text-gray-400">Loading token balances...</div>
                 </div>
@@ -300,7 +308,11 @@ export function EmbeddedTokenList({ selectedCurrency = "KES" }: EmbeddedTokenLis
                       key={token.faAddress}
                       className={`bg-white/5 backdrop-blur-md rounded-lg p-4 ${
                         userBalance
-                          ? "border-t-2 border-primary !bg-primary/10"
+                          ? isTokenSupported(token.faAddress)
+                            ? "border-t-2 border-primary !bg-primary/10"
+                            : "border-t-2 border-gray-500 !bg-gray-800/20 opacity-60 grayscale"
+                          : !isTokenSupported(token.faAddress)
+                          ? "opacity-50 grayscale"
                           : ""
                       }`}
                     >

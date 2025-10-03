@@ -33,10 +33,12 @@ export function useOnramp() {
       onSuccess: (data) => {
         console.log("💳 Payment status update from React Query:", data);
         
-        if (data.status === "completed" || data.status === "success") {
+        if (data.status === "completed" || data.status === "Completed" || 
+            data.status === "success" || data.status === "Success") {
           console.log("✅ Payment completed successfully via polling");
           setState(prev => ({ ...prev, status: "success" }));
-        } else if (data.status === "failed" || data.status === "error") {
+        } else if (data.status === "failed" || data.status === "Failed" || 
+                   data.status === "error" || data.status === "Error") {
           console.log("❌ Payment failed via polling:", data.message);
           setState(prev => ({ 
             ...prev, 
@@ -70,6 +72,8 @@ export function useOnramp() {
     mobileNetwork: string;
     amount: number;
     existingPaymentMethodId?: string | null;
+    cryptoCurrencyId?: string;
+    cryptoCurrencyAddress?: string | null;
   }) => {
     console.log("🚀 Starting onramp process with params:", params);
     
@@ -120,7 +124,7 @@ export function useOnramp() {
       const onrampResponse = await initiateOnramp({
         payment_method_id: paymentMethodId,
         amount: params.amount,
-        target_token: "apt",
+        target_token: params.cryptoCurrencyId || "apt",
       });
 
       console.log("✅ Onramp initiated successfully:", onrampResponse);

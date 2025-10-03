@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { useAllTransactionHistory, TransactionData, TransactionType } from "../../hooks/useTransactionHistory";
+import { useAllTransactionHistory, TransactionData, TransactionType, PaymentTransactionData, OnrampTransactionData } from "../../hooks/useTransactionHistory";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Loader2, RefreshCw, ExternalLink, CheckCircle, XCircle, Clock } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 interface TransactionHistoryDialogProps {
   children: React.ReactNode;
@@ -41,7 +40,35 @@ function getStatusColor(status: string) {
   }
 }
 
+// Type guard to check if transaction is a payment transaction
+function isPaymentTransaction(transaction: TransactionData): transaction is PaymentTransactionData {
+  return 'final_fiat_value' in transaction;
+}
+
+// Type guard to check if transaction is an onramp transaction
+function isOnrampTransaction(transaction: TransactionData): transaction is OnrampTransactionData {
+  return 'amount' in transaction;
+}
+
 function TransactionCard({ transaction }: { transaction: TransactionData }) {
+  // Determine if this is a payment/offramp transaction or onramp transaction
+  const isPayment = isPaymentTransaction(transaction);
+  
+  // Get the appropriate amount to display
+  const displayAmount = isPayment 
+    ? transaction.final_fiat_value 
+    : transaction.amount;
+  
+  // Get the appropriate token amount
+  const tokenAmount = isPayment 
+    ? transaction.transferred_amount 
+    : transaction.final_token_quote;
+  
+  // Get the appropriate transaction hash
+  const transactionHash = isPayment 
+    ? transaction.transaction_hash 
+    : transaction.on_chain_transaction_hash;
+
   return (
     <Card className="bg-white/5 backdrop-blur-md border-none rounded-lg">
       <CardHeader className="pb-4">
@@ -50,7 +77,7 @@ function TransactionCard({ transaction }: { transaction: TransactionData }) {
             {getStatusIcon(transaction.status)}
             <div>
               <CardTitle className="text-lg font-bold text-white">
-                Ksh {transaction.amount} 
+                Ksh {parseFloat(displayAmount || "0").toFixed(2)} 
               </CardTitle>
               <p className="text-xs text-gray-400">
                 {new Date(transaction.requested_at).toLocaleString('en-US', {
@@ -74,13 +101,37 @@ function TransactionCard({ transaction }: { transaction: TransactionData }) {
           {/* Separator line */}
           <div className="border-t border-gray-600"></div>
           
-          {/* First section */}
+          {/* Payment-specific fields */}
+          {isPayment && (
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {transaction.payment_identity && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Phone Number</p>
+                  <p className="text-xs font-bold text-white">
+                    {transaction.payment_identity}
+                  </p>
+                </div>
+              )}
+              {transaction.payment_provider_id && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Provider</p>
+                  <p className="text-xs font-bold text-white capitalize">
+                    {transaction.payment_provider_id}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Token amount and transaction details */}
           <div className="grid grid-cols-3 items-center gap-4">
-            {transaction.final_token_quote && transaction.final_token_quote !== "0" && (
+            {tokenAmount && tokenAmount !== "0" && (
               <div>
-                <p className="text-xs text-gray-400 mb-1">Final Quote</p>
+                <p className="text-xs text-gray-400 mb-1">
+                  {isPayment ? "Transferred" : "Final Quote"}
+                </p>
                 <p className="text-xs font-bold text-white">
-                  {parseFloat(transaction.final_token_quote).toFixed(6)} APT
+                  {parseFloat(tokenAmount).toFixed(6)} APT
                 </p>
               </div>
             )}
@@ -92,7 +143,7 @@ function TransactionCard({ transaction }: { transaction: TransactionData }) {
                 </p>
               </div>
             )}
-            {transaction.on_chain_transaction_hash && (
+            {transactionHash && (
             <div>
               <p className="text-xs text-gray-400">Transaction</p>
               <Button
@@ -101,7 +152,7 @@ function TransactionCard({ transaction }: { transaction: TransactionData }) {
                 className="h-auto p-0 text-white hover:text-gray-300"
                 onClick={() => {
                   window.open(
-                    `https://explorer.aptoslabs.com/txn/${transaction.on_chain_transaction_hash}`,
+                    `https://explorer.aptoslabs.com/txn/${transactionHash}`,
                     "_blank"
                   );
                 }}
@@ -252,10 +303,9 @@ export function TransactionHistoryDialog({ children }: TransactionHistoryDialogP
         
         <div className="flex-1 flex flex-col min-h-0 px-6 pb-6">
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TransactionType)} className="flex flex-col h-full">
-            <TabsList className="grid w-full grid-cols-3 rounded-xl bg-white/10 flex-shrink-0 mb-4">
-              <TabsTrigger value="onramp" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Onramp</TabsTrigger>
-              <TabsTrigger value="offramp" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Offramp</TabsTrigger>
-              <TabsTrigger value="payment" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Payment</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 rounded-xl bg-white/10 flex-shrink-0 mb-4">
+              <TabsTrigger value="onramp" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Wallet Deposits</TabsTrigger>
+              <TabsTrigger value="payment" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl">Payments</TabsTrigger>
             </TabsList>
             
             <div className="flex-1 overflow-hidden">
@@ -268,14 +318,14 @@ export function TransactionHistoryDialog({ children }: TransactionHistoryDialogP
                 />
               </TabsContent>
               
-              <TabsContent value="offramp" className="h-full overflow-y-auto">
+              {/* <TabsContent value="offramp" className="h-full overflow-y-auto">
                 <TransactionList
                   transactions={getCurrentTransactions()}
                   isLoading={getCurrentLoading()}
                   error={getCurrentError()}
                   onRefresh={refetch}
                 />
-              </TabsContent>
+              </TabsContent> */}
               
               <TabsContent value="payment" className="h-full overflow-y-auto">
                 <TransactionList
