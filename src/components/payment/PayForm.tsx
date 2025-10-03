@@ -100,13 +100,9 @@ const PayFormComponent = ({
     refetch: refetchSupportedCurrencies
   } = useSupportedCurrencies();
 
-  console.log('cryptoCurrencies', cryptoCurrencies);
 
   // Show all crypto balances from supported currencies
   const availableCryptoBalances = useMemo(() => {
-    console.log('=== PayForm: All available crypto balances ===');
-    console.log('Total cryptoBalances:', cryptoBalances.length);
-    console.log('All cryptoBalances data:', cryptoBalances);
     
     return cryptoBalances;
   }, [cryptoBalances]);
@@ -122,9 +118,7 @@ const PayFormComponent = ({
     
     // Find matching balance by currency ID
     const matchingBalance = getBalanceById(selectedCryptoCurrency.id);
-    
-    console.log('Selected balance for', selectedCryptoCurrency.symbol, ':', matchingBalance);
-    
+        
     return matchingBalance || null;
   }, [selectedCryptoCurrency, getBalanceById]);
   

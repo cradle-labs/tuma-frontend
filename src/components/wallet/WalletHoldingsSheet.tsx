@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useWallet, truncateAddress } from "@aptos-labs/wallet-adapter-react";
-import { Eye, Power } from "lucide-react";
+import { Eye, Power, Copy, Check } from "lucide-react";
 import { Button } from "../ui/button";
 import { useUserTokens } from "../../hooks/useUserTokens";
 import { useUserAssets } from "../../hooks/useUserAssets";
@@ -25,10 +25,23 @@ export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsShee
   const { userAssets, isLoadingAssets } = useUserAssets();
   const { exchangeRate, isLoadingExchangeRate } = useExchangeRate("KES");
   const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "KES">("KES");
+  const [copied, setCopied] = useState(false);
   
   const handleDisconnect = () => {
     disconnect();
     closeAction();
+  };
+
+  const handleCopyAddress = async () => {
+    if (account?.address) {
+      try {
+        await navigator.clipboard.writeText(account.address.toString());
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy address:', err);
+      }
+    }
   };
 
   // Format coin balances for display
@@ -108,10 +121,25 @@ export function WalletHoldingsSheet({ closeAction, account }: WalletHoldingsShee
                account?.address ? account.address.toString().charAt(0).toUpperCase() : '?'}
             </span>
           </div>
-          <span className="text-white font-semibold">
-            {account?.ansName || 
-             (account?.address ? truncateAddress(account.address.toString()) : 'Unknown')}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-white font-semibold">
+              {account?.ansName || 
+               (account?.address ? truncateAddress(account.address.toString()) : 'Unknown')}
+            </span>
+            {account?.address && (
+              <button
+                onClick={handleCopyAddress}
+                className="text-gray-400 hover:text-white transition-colors p-1"
+                title={copied ? "Copied!" : "Copy address"}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-400" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center  gap-4">
           <button 
