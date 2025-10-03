@@ -29,6 +29,7 @@ import { useConversion } from "@/hooks/useConversion";
 import { useSupportedCurrencies, SupportedCurrency } from "@/hooks/useSupportedCurrencies";
 import { XCircle, CreditCard } from "lucide-react";
 import { PaymentMethodDialog } from "./PaymentMethodDialog";
+import Image from "next/image";
 
 interface PayFormProps {
   phoneNumber: string;
@@ -552,10 +553,12 @@ const PayFormComponent = ({
                   {selectedCryptoCurrency ? (
                     <>
                       {selectedCryptoCurrency.symbol === "APT" ? (
-                        <img
+                        <Image
                           src="/images/aptos-new.png"
                           alt="APT"
                           className="w-5 h-5 rounded-full"
+                          width={20}
+                          height={20}
                         />
                       ) : selectedCryptoCurrency.symbol === "USDC" ? (
                         <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
@@ -600,10 +603,12 @@ const PayFormComponent = ({
                   >
                     <div className="flex items-center gap-2">
                       {currency.symbol === "APT" ? (
-                        <img
+                        <Image
                           src="/images/aptos-apt-logo.png"
                           alt="APT"
                           className="w-5 h-5 rounded-full"
+                          width={20}
+                          height={20}
                         />
                       ) : currency.symbol === "USDC" ? (
                         <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
@@ -913,7 +918,7 @@ const PayFormComponent = ({
               placeholder="0"
               min="1"
               step="1"
-              className="bg-primary/5 px-2 rounded-xl  text-right text-4xl font-bold text-white placeholder:text-gray-500 focus:ring-0 focus:outline-none w-56 py-1 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+              className="bg-primary/5 px-2 rounded-xl  text-right text-4xl font-bold text-white placeholder:text-gray-500 focus:ring-0 focus:outline-none w-48 md:w-56 py-1 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
             />
           </div>
 
@@ -949,10 +954,12 @@ const PayFormComponent = ({
                       </span>
                       <div className="flex items-center gap-1">
                         {selectedCryptoCurrency && selectedCryptoCurrency.symbol === "APT" ? (
-                          <img
+                          <Image
                             src="/images/aptos-new.png"
                             alt="APT"
                             className="w-4 h-4 rounded-full"
+                            width={16}
+                            height={16}
                           />
                         ) : selectedCryptoCurrency && selectedCryptoCurrency.symbol === "USDC" ? (
                           <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
