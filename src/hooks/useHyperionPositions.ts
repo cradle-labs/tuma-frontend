@@ -95,17 +95,23 @@ const fetchPositionsByAddress = async (address: string): Promise<Position[]> => 
 export function useHyperionPositions(): UseHyperionPositionsReturn {
   const { account, connected } = useWallet();
 
-  const { data: positions = [], isLoading, error, refetch } = useQueries({
+  const results = useQueries({
     queries: connected && account?.address ? [{
       queryKey: ['hyperion-positions', account.address.toString()],
       queryFn: () => fetchPositionsByAddress(account.address.toString()),
       staleTime: 2 * 60 * 1000, // 2 minutes
-      cacheTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 5 * 60 * 1000, // 5 minutes
       retry: 3,
       retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
       enabled: connected && !!account?.address
-    }] : []
-  })[0] || { data: [], isLoading: false, error: null, refetch: () => {} };
+    }] : [{
+      queryKey: ['hyperion-positions', 'disabled'],
+      queryFn: () => Promise.resolve([]),
+      enabled: false
+    }]
+  });
+  
+  const { data: positions = [], isLoading, error, refetch } = results[0] || { data: [], isLoading: false, error: null, refetch: () => {} };
 
   return {
     positions,
