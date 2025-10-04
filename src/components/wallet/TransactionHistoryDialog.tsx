@@ -349,11 +349,11 @@ export function TransactionHistoryDialog({ children }: TransactionHistoryDialogP
             {/* Status Filter Tabs */}
             <div className="mb-4">
               <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
-                <TabsList className="grid w-full grid-cols-4 rounded-xl bg-white/5 flex-shrink-0">
-                  <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-black text-gray-400 hover:text-white rounded-xl text-xs">All</TabsTrigger>
-                  <TabsTrigger value="Completed" className="data-[state=active]:bg-green-500 data-[state=active]:text-white text-gray-400 hover:text-white rounded-xl text-xs">Completed</TabsTrigger>
-                  <TabsTrigger value="Pending" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white text-gray-400 hover:text-white rounded-xl text-xs">Pending</TabsTrigger>
-                  <TabsTrigger value="Failed" className="data-[state=active]:bg-red-500 data-[state=active]:text-white text-gray-400 hover:text-white rounded-xl text-xs">Failed</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 bg-transparent  flex-shrink-0">
+                  <TabsTrigger value="all" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:bg-transparent text-gray-400 hover:text-white bg-transparent text-xs transition-none">All</TabsTrigger>
+                  <TabsTrigger value="Completed" className="data-[state=active]:border-b-2 data-[state=active]:border-green-500 data-[state=active]:text-green-500 data-[state=active]:bg-transparent text-gray-400 hover:text-white bg-transparent text-xs transition-none">Completed</TabsTrigger>
+                  <TabsTrigger value="Pending" className="data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 data-[state=active]:text-yellow-500 data-[state=active]:bg-transparent text-gray-400 hover:text-white bg-transparent text-xs transition-none">Pending</TabsTrigger>
+                  <TabsTrigger value="Failed" className="data-[state=active]:border-b-2 data-[state=active]:border-red-500 data-[state=active]:text-red-500 data-[state=active]:bg-transparent text-gray-400 hover:text-white bg-transparent text-xs transition-none">Failed</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
