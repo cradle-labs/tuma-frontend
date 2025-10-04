@@ -1020,12 +1020,12 @@ const PayFormComponent = ({
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Amount in USDC</span>
+                  <span className="text-gray-400">Amount in USD</span>
                   <span className="text-white font-semibold">
                     {parseFloat(amount || "0") > 0 && exchangeRate
                       ? (parseFloat(amount) / exchangeRate).toFixed(2)
                       : "0.00"}{" "}
-                    USDC
+                    USD
                   </span>
                 </div>
               </div>
